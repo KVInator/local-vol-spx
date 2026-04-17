@@ -31,14 +31,22 @@ def first_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
 
     h1 = x[1] - x[0]
     h2 = x[2] - x[1]
-    out[0] = (-(2.0 * h1 + h2) * f[0] + (h1 + h2) * f[1] - h1 * f[2]) / (h1 * (h1 + h2))
+    out[0] = (
+        -(2.0 * h1 + h2) / (h1 * (h1 + h2)) * f[0]
+        + (h1 + h2) / (h1 * h2) * f[1]
+        - h1 / (h2 * (h1 + h2)) * f[2]
+    )
 
     for i in range(1, x.size - 1):
         out[i] = (f[i + 1] - f[i - 1]) / (x[i + 1] - x[i - 1])
 
     h1 = x[-1] - x[-2]
     h2 = x[-2] - x[-3]
-    out[-1] = ((2.0 * h1 + h2) * f[-1] - (h1 + h2) * f[-2] + h1 * f[-3]) / (h1 * (h1 + h2))
+    out[-1] = (
+        (2.0 * h1 + h2) / (h1 * (h1 + h2)) * f[-1]
+        - (h1 + h2) / (h1 * h2) * f[-2]
+        + h1 / (h2 * (h1 + h2)) * f[-3]
+    )
 
     return out
 
@@ -80,3 +88,37 @@ def second_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
         out[-1] = out[-2]
 
     return out
+
+
+def apply_1d_operator_along_axis(
+    arr: np.ndarray,
+    grid: np.ndarray,
+    axis: int,
+    operator,
+) -> np.ndarray:
+    arr = np.asarray(arr, dtype=float)
+    grid = _validate_grid(grid)
+
+    if axis < 0:
+        axis += arr.ndim
+    if axis < 0 or axis >= arr.ndim:
+        raise ValueError("invalid axis.")
+
+    if arr.shape[axis] != grid.size:
+        raise ValueError("grid length must match array length on the selected axis.")
+
+    moved = np.moveaxis(arr, axis, 0)
+    out = np.empty_like(moved)
+
+    for idx in np.ndindex(moved.shape[1:]):
+        out[(slice(None),) + idx] = operator(grid, moved[(slice(None),) + idx])
+
+    return np.moveaxis(out, 0, axis)
+
+
+def first_derivative(arr: np.ndarray, grid: np.ndarray, axis: int) -> np.ndarray:
+    return apply_1d_operator_along_axis(arr=arr, grid=grid, axis=axis, operator=first_derivative_1d)
+
+
+def second_derivative(arr: np.ndarray, grid: np.ndarray, axis: int) -> np.ndarray:
+    return apply_1d_operator_along_axis(arr=arr, grid=grid, axis=axis, operator=second_derivative_1d)

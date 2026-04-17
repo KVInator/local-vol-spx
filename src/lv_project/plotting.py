@@ -25,9 +25,7 @@ def make_3d_surface(
                 x=x,
                 y=y,
                 z=z,
-                contours={
-                    "z": {"show": True, "usecolormap": True, "project_z": True}
-                },
+                contours={"z": {"show": True, "usecolormap": True, "project_z": True}},
                 hovertemplate=
                 f"{x_label}: %{{x:.4f}}<br>"
                 f"{y_label}: %{{y:.4f}}<br>"
@@ -42,9 +40,14 @@ def make_3d_surface(
             xaxis_title=x_label,
             yaxis_title=y_label,
             zaxis_title=z_label,
+            aspectmode="manual",
+            aspectratio=dict(x=1.15, y=1.0, z=0.75),
+            camera=dict(
+                eye=dict(x=1.65, y=1.45, z=0.85)
+            ),
         ),
         margin=dict(l=10, r=10, t=50, b=10),
-        height=700,
+        height=720,
     )
     return fig
 
@@ -73,8 +76,9 @@ def make_smile_slice_figure(
         title=title,
         xaxis_title=x_label,
         yaxis_title=y_label,
-        height=550,
+        height=560,
         margin=dict(l=10, r=10, t=50, b=10),
+        legend=dict(orientation="v"),
     )
     return fig
 
@@ -101,10 +105,11 @@ def synthetic_demo_surface(
     T = np.asarray(maturities, dtype=float)
     Y, TT = np.meshgrid(y, T)
 
-    base = 0.15 + 0.10 * np.exp(-3.0 * TT)
-    skew = 0.35 * np.maximum(-Y, 0.0)
-    wing = 0.10 * (Y ** 2)
-    term_bump = 0.08 * np.exp(-((TT - 0.35) / 0.18) ** 2) * np.exp(-((Y + 0.08) / 0.07) ** 2)
+    base = 0.16 + 0.06 * np.exp(-2.8 * TT)
+    skew = -0.14 * Y * np.exp(-1.3 * TT)
+    wing = 0.45 * (Y ** 2) * (0.7 + 0.3 * np.exp(-TT))
+    short_dated_bump = 0.028 * np.exp(-((Y + 0.09) / 0.045) ** 2) * np.exp(-((TT - 0.18) / 0.12) ** 2)
+    term_lift = 0.008 * (1.0 - np.exp(-2.0 * TT))
 
-    sigma = base + skew + wing + term_bump
+    sigma = base + skew + wing + short_dated_bump + term_lift
     return y, T, sigma
