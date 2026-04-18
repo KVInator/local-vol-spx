@@ -5,4 +5,6 @@ __all__ = [
     "finite_diff",
     "plotting",
     "widgets",
+    "preprocessing",
+    "surface",
 ]
