@@ -9,6 +9,8 @@ def _validate_grid(x: np.ndarray) -> np.ndarray:
         raise ValueError("grid must be one-dimensional.")
     if x.size < 3:
         raise ValueError("grid must have at least 3 points.")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("grid must contain only finite points.")
     if not np.all(np.diff(x) > 0):
         raise ValueError("grid must be strictly increasing.")
     return x
@@ -24,6 +26,11 @@ def _validate_values(f: np.ndarray, n: int) -> np.ndarray:
 
 
 def first_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
+    """Differentiate the local quadratic, including one-sided endpoints.
+
+    The three-point stencil is second order on uniform and nonuniform grids
+    with bounded spacing ratios. NaNs propagate through each local stencil.
+    """
     x = _validate_grid(x)
     f = _validate_values(f, x.size)
 
@@ -38,7 +45,12 @@ def first_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
     )
 
     for i in range(1, x.size - 1):
-        out[i] = (f[i + 1] - f[i - 1]) / (x[i + 1] - x[i - 1])
+        h_minus = x[i] - x[i - 1]
+        h_plus = x[i + 1] - x[i]
+        out[i] = (
+            h_plus * (f[i] - f[i - 1]) / h_minus
+            + h_minus * (f[i + 1] - f[i]) / h_plus
+        ) / (h_minus + h_plus)
 
     h1 = x[-1] - x[-2]
     h2 = x[-2] - x[-3]
@@ -51,7 +63,25 @@ def first_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
     return out
 
 
+def _endpoint_second_derivative(x: np.ndarray, f: np.ndarray, endpoint: int) -> float:
+    """Four-point cubic stencil, scaled before solving for its weights."""
+    offsets = x - x[endpoint]
+    scale = np.max(np.abs(offsets))
+    z = offsets / scale
+    moments = np.vstack([z**power for power in range(4)])
+    weights = np.linalg.solve(moments, np.array([0.0, 0.0, 2.0, 0.0]))
+    return float(np.dot(weights, f - f[endpoint]) / scale**2)
+
+
 def second_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
+    """Three-point interior and four-point one-sided endpoint curvature.
+
+    Interior accuracy is second order on uniform/smoothly graded grids, but
+    only first order on arbitrary nonuniform grids. Endpoints are second
+    order with at least four points and bounded spacing ratios. For three
+    points, the quadratic's constant curvature is returned everywhere;
+    endpoint accuracy is then generally first order. NaNs are not filled.
+    """
     x = _validate_grid(x)
     f = _validate_values(f, x.size)
 
@@ -69,23 +99,8 @@ def second_derivative_1d(x: np.ndarray, f: np.ndarray) -> np.ndarray:
         out[-1] = out[-2]
         return out
 
-    h0 = x[1] - x[0]
-    h1 = x[2] - x[1]
-    h2 = x[3] - x[2]
-    if np.isclose(h0, h1) and np.isclose(h1, h2):
-        h = h0
-        out[0] = (2.0 * f[0] - 5.0 * f[1] + 4.0 * f[2] - f[3]) / (h * h)
-    else:
-        out[0] = out[1]
-
-    h0 = x[-1] - x[-2]
-    h1 = x[-2] - x[-3]
-    h2 = x[-3] - x[-4]
-    if np.isclose(h0, h1) and np.isclose(h1, h2):
-        h = h0
-        out[-1] = (2.0 * f[-1] - 5.0 * f[-2] + 4.0 * f[-3] - f[-4]) / (h * h)
-    else:
-        out[-1] = out[-2]
+    out[0] = _endpoint_second_derivative(x[:4], f[:4], 0)
+    out[-1] = _endpoint_second_derivative(x[-4:], f[-4:], -1)
 
     return out
 
