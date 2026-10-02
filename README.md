@@ -1,4 +1,3 @@
 # local-vol-spx
- Constructing an implied volatility surface and empirically evaluating local-volatility-based delta hedging performance accuracy
 
-Currently a work in progress. Stay tunded for constant updates!
+This SPX local-volatility project is being restarted and rebuilt manually.
