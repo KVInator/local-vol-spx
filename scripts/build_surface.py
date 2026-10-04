@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from surface_outputs import build_interpolated_surface
 
 from calibration_pipeline import (
     CalibratedExpiry,
@@ -582,6 +583,15 @@ def main() -> None:
         data_directory,
         diagnostic_directory,
     )
+    run_audit["interpolated_surface"] = build_interpolated_surface(
+    results,
+    config["comparison_grid"],
+    data_directory,
+    diagnostic_directory,
+    )
+
+    run_audit["stage"] = "interpolated_call_price_surface"
+    
     write_json(audit_path, run_audit)
 
     print(
