@@ -1,4 +1,4 @@
-"""Calibrate expiry slices and assess their cross-maturity consistency."""
+"""Build calibrated SPX price, implied-volatility and local-volatility surfaces."""
 
 from __future__ import annotations
 
@@ -13,16 +13,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from surface_outputs import build_interpolated_surface
 
-from calibration_pipeline import (
-    CalibratedExpiry,
-    ExpirySliceCalibrator,
-)
+from calibration_pipeline import CalibratedExpiry, ExpirySliceCalibrator
 from discount_curve import TreasuryYieldProxy
 from implied_vol import ImpliedVolSolver
+from local_vol_outputs import extract_local_volatility
 from market_data import SPXQuoteFile
 from maturity import ExpiryConvention
+from surface_outputs import build_interpolated_surface
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -83,12 +81,8 @@ def compare_slices(
     data_directory: Path,
     diagnostic_directory: Path,
 ) -> dict:
-    requested_lower = float(
-        grid_settings["min_log_moneyness"]
-    )
-    requested_upper = float(
-        grid_settings["max_log_moneyness"]
-    )
+    requested_lower = float(grid_settings["min_log_moneyness"])
+    requested_upper = float(grid_settings["max_log_moneyness"])
     points = int(grid_settings["points"])
     tolerance = float(grid_settings["calendar_tolerance"])
 
@@ -134,9 +128,7 @@ def compare_slices(
     days = 365.0 * times
 
     if np.any(np.diff(times) <= 0.0):
-        raise ValueError(
-            "Slice maturities must be strictly increasing."
-        )
+        raise ValueError("Slice maturities must be strictly increasing.")
 
     iv_rows = []
     comparison_frames = []
@@ -145,8 +137,7 @@ def compare_slices(
         spline = result.spline
         pricer = spline.pricer
 
-        # The shared domain is already inside every spline domain.
-        # Clip only the endpoint roundoff from the log/exp conversion.
+        # Clip only endpoint roundoff from the log/exp conversion.
         strikes = np.clip(
             pricer.forward * np.exp(y_grid),
             spline.strike_origin,
@@ -181,15 +172,12 @@ def compare_slices(
                     "call_price": prices,
                     "normalized_call_price": (
                         prices
-                        / (
-                            pricer.discount_factor
-                            * pricer.forward
-                        )
+                        / (pricer.discount_factor * pricer.forward)
                     ),
                     "implied_volatility": ivs,
                     "total_variance": ivs**2 * pricer.maturity,
-                    "strike_curvature": (
-                        spline.strike_curvature(strikes)
+                    "strike_curvature": spline.strike_curvature(
+                        strikes
                     ),
                     "iv_repricing_error": [
                         recovery.price_error
@@ -217,12 +205,8 @@ def compare_slices(
                     "earlier_expiry": earlier,
                     "later_expiry": later,
                     "log_moneyness": y_grid,
-                    "earlier_total_variance": (
-                        variance_matrix[index]
-                    ),
-                    "later_total_variance": (
-                        variance_matrix[index + 1]
-                    ),
+                    "earlier_total_variance": variance_matrix[index],
+                    "later_total_variance": variance_matrix[index + 1],
                     "variance_change": changes,
                     "calendar_violation": violations,
                 }
@@ -246,10 +230,12 @@ def compare_slices(
         data_directory / "comparison_grid.csv",
         index=False,
     )
+
     pd.concat(calendar_rows, ignore_index=True).to_csv(
         diagnostic_directory / "calendar_checks.csv",
         index=False,
     )
+
     calendar_summary_frame = pd.DataFrame(calendar_summary)
     calendar_summary_frame.to_csv(
         diagnostic_directory / "calendar_summary.csv",
@@ -277,6 +263,7 @@ def compare_slices(
         sharex=True,
         constrained_layout=True,
     )
+
     for index, result in enumerate(results):
         label = (
             f"{result.expiry_date.isoformat()} "
@@ -293,7 +280,7 @@ def compare_slices(
             label=label,
         )
 
-    axes[0].set_title("Independently calibrated expiry slices")
+    axes[0].set_title("Calibrated expiry slices")
     axes[0].set_ylabel("Implied volatility (%)")
     axes[0].legend()
     axes[1].set_ylabel("Total variance")
@@ -310,9 +297,12 @@ def compare_slices(
     plt.close(fig)
 
     y_mesh, days_mesh = np.meshgrid(y_grid, days)
-    fig = plt.figure(figsize=(11, 8), constrained_layout=True)
+    fig = plt.figure(
+        figsize=(11, 8),
+        constrained_layout=True,
+    )
     axis = fig.add_subplot(111, projection="3d")
-    surface = axis.plot_surface(
+    plotted_surface = axis.plot_surface(
         y_mesh,
         days_mesh,
         100.0 * iv_matrix,
@@ -321,15 +311,12 @@ def compare_slices(
         antialiased=True,
         alpha=0.9,
     )
-    axis.set_title(
-        "Independent-slice IV preview\n"
-        "Calendar repair and maturity interpolation pending"
-    )
+    axis.set_title("Calibrated IV expiry pillars")
     axis.set_xlabel("Forward log-moneyness")
     axis.set_ylabel("Days to fixing")
     axis.set_zlabel("Implied volatility (%)")
     fig.colorbar(
-        surface,
+        plotted_surface,
         ax=axis,
         shrink=0.65,
         pad=0.1,
@@ -361,13 +348,9 @@ def compare_slices(
         "points_per_expiry": points,
         "calendar_tolerance": tolerance,
         "calendar_violation_count": int(
-            np.count_nonzero(
-                variance_changes < -tolerance
-            )
+            np.count_nonzero(variance_changes < -tolerance)
         ),
-        "minimum_variance_change": float(
-            variance_changes.min()
-        ),
+        "minimum_variance_change": float(variance_changes.min()),
         "maximum_grid_iv_repricing_error": float(
             comparison["iv_repricing_error"].abs().max()
         ),
@@ -380,8 +363,8 @@ def compare_slices(
         ),
         "calendar_repair_applied": False,
         "maturity_interpolation": (
-            "Not yet implemented. The 3D plot connects slices "
-            "for display only."
+            "This comparison contains expiry pillars only. "
+            "See interpolated_surface for the maturity interpolation."
         ),
     }
 
@@ -398,8 +381,10 @@ def main() -> None:
 
     quote_date = date.fromisoformat(config["quote_date"])
     quote_time = pd.Timestamp(config["quote_timestamp_utc"])
+
     if quote_time.tzinfo is None:
         raise ValueError("Quote timestamp must include a timezone.")
+
     quote_time = quote_time.tz_convert("UTC")
 
     expiries = [
@@ -407,9 +392,8 @@ def main() -> None:
         for value in config["expiries"]
     ]
     if len(expiries) < 2 or len(set(expiries)) != len(expiries):
-        raise ValueError(
-            "Provide at least two distinct expiry dates."
-        )
+        raise ValueError("Provide at least two distinct expiry dates.")
+
     expiries.sort()
 
     raw_path = project_path(config["raw_file"])
@@ -428,15 +412,16 @@ def main() -> None:
     source = SPXQuoteFile(raw_path)
 
     run_name = config["run_name"]
+    allowed_characters = (
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789_-"
+    )
     if (
         not isinstance(run_name, str)
         or not run_name
         or any(
-            character not in (
-                "abcdefghijklmnopqrstuvwxyz"
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                "0123456789_-"
-            )
+            character not in allowed_characters
             for character in run_name
         )
     ):
@@ -450,6 +435,12 @@ def main() -> None:
     diagnostic_directory = (
         PROJECT_ROOT / "outputs/surface_diagnostics" / run_name
     )
+    local_vol_directory = (
+        PROJECT_ROOT
+        / "outputs/local_volatility_diagnostics"
+        / run_name
+    )
+
     data_directory.mkdir(parents=True, exist_ok=True)
     diagnostic_directory.mkdir(parents=True, exist_ok=True)
 
@@ -458,7 +449,10 @@ def main() -> None:
     settlement = config["settlement"]
 
     for expiry in expiries:
-        print(f"Calibrating {expiry.isoformat()}...", flush=True)
+        print(
+            f"Calibrating {expiry.isoformat()}...",
+            flush=True,
+        )
 
         try:
             snapshot = source.snapshot(
@@ -479,6 +473,7 @@ def main() -> None:
                 snapshot,
                 convention,
             )
+
         except (ValueError, RuntimeError) as error:
             records.append(
                 {
@@ -573,7 +568,7 @@ def main() -> None:
             ]
         ].to_string(
             index=False,
-            float_format=lambda value: f"{value:.6f}",
+            float_format=lambda value: f"{value:.8g}",
         )
     )
 
@@ -583,15 +578,22 @@ def main() -> None:
         data_directory,
         diagnostic_directory,
     )
-    run_audit["interpolated_surface"] = build_interpolated_surface(
-    results,
-    config["comparison_grid"],
-    data_directory,
-    diagnostic_directory,
-    )
+    write_json(audit_path, run_audit)
 
+    run_audit["interpolated_surface"] = build_interpolated_surface(
+        results,
+        config["comparison_grid"],
+        data_directory,
+        diagnostic_directory,
+    )
     run_audit["stage"] = "interpolated_call_price_surface"
-    
+    write_json(audit_path, run_audit)
+
+    run_audit["local_volatility"] = extract_local_volatility(
+        data_directory / "call_surface.json",
+        output_directory=local_vol_directory,
+    )
+    run_audit["stage"] = "dupire_local_volatility_extraction"
     write_json(audit_path, run_audit)
 
     print(
@@ -602,16 +604,16 @@ def main() -> None:
         "Sampled calendar violations:",
         run_audit["comparison"]["calendar_violation_count"],
     )
-    print(f"\nModels and comparison grid: {data_directory}")
-    print(f"Summary: {summary_path}")
-    print(f"Audit:   {audit_path}")
+    print(f"\nModels and grids: {data_directory}")
+    print(f"Expiry summary: {summary_path}")
+    print(f"Run audit:      {audit_path}")
     print(
-        "Smile comparison:",
-        diagnostic_directory / "expiry_comparison.png",
+        "IV surface:",
+        diagnostic_directory / "iv_surface.png",
     )
     print(
-        "3D preview:",
-        diagnostic_directory / "iv_surface_preview.png",
+        "Local-volatility figure:",
+        local_vol_directory / "raw_local_volatility.png",
     )
 
 
