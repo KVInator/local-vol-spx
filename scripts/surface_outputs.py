@@ -11,6 +11,37 @@ from black import BlackPricer
 from vol_surface import NormalizedCallSurface
 
 
+MATURITY_MERGE_TOLERANCE_YEARS = 1e-12
+
+
+def _evaluation_maturities(pillars, maturity_count):
+    """Combine regular evaluation times with exact expiry pillars."""
+    regular_times = np.linspace(
+        pillars[0],
+        pillars[-1],
+        maturity_count,
+    )
+
+    near_pillar = np.any(
+        np.isclose(
+            regular_times[:, None],
+            pillars[None, :],
+            rtol=0.0,
+            atol=MATURITY_MERGE_TOLERANCE_YEARS,
+        ),
+        axis=1,
+    )
+
+    return np.sort(
+        np.concatenate(
+            [
+                pillars,
+                regular_times[~near_pillar],
+            ]
+        )
+    )
+
+
 def build_interpolated_surface(
     results,
     grid_settings,
@@ -58,14 +89,8 @@ def build_interpolated_surface(
         raise ValueError("Insufficient surface evaluation points.")
 
     pillars = surface.maturities
-    times = np.unique(
-        np.concatenate(
-            [
-                pillars,
-                np.linspace(pillars[0], pillars[-1], maturity_count),
-            ]
-        )
-    )
+    times = _evaluation_maturities(pillars, maturity_count)
+
     y = np.linspace(lower, upper, point_count)
     z = np.exp(y)
 
@@ -135,7 +160,8 @@ def build_interpolated_surface(
 
     manifest_path = data_directory / "call_surface.json"
     manifest_path.write_text(
-        json.dumps(specification, indent=2) + "\n"
+        json.dumps(specification, indent=2) + "\n",
+        encoding="utf-8",
     )
 
     maximum_repricing_error = float(
@@ -170,6 +196,7 @@ def build_interpolated_surface(
         pad=0.10,
         label="Implied volatility (%)",
     )
+
     figure_path = diagnostic_directory / "iv_surface.png"
     figure.savefig(figure_path, dpi=160, bbox_inches="tight")
     plt.close(figure)
@@ -179,6 +206,14 @@ def build_interpolated_surface(
         "evaluation_maturities": int(len(times)),
         "evaluation_points_per_maturity": int(len(y)),
         "evaluation_points": int(len(grid)),
+        "regular_maturity_points_requested": maturity_count,
+        "maturity_merge_tolerance_years": (
+            MATURITY_MERGE_TOLERANCE_YEARS
+        ),
+        "maturity_grid_policy": (
+            "Preserve exact expiry pillars; omit regular evaluation "
+            "times within the absolute merge tolerance of a pillar."
+        ),
         "minimum_normalized_strike_curvature": float(
             grid["normalized_strike_curvature"].min()
         ),
@@ -188,8 +223,13 @@ def build_interpolated_surface(
         "maximum_iv_repricing_error": maximum_repricing_error,
     }
 
-    audit_path = diagnostic_directory / "interpolated_surface_audit.json"
-    audit_path.write_text(json.dumps(audit, indent=2) + "\n")
+    audit_path = (
+        diagnostic_directory / "interpolated_surface_audit.json"
+    )
+    audit_path.write_text(
+        json.dumps(audit, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     print("\nInterpolated surface:")
     print(f"Expiry pillars:           {len(pillars)}")
