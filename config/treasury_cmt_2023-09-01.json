@@ -1,0 +1,6 @@
+{
+  "as_of": "2023-09-01",
+  "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?field_tdr_date_value_month=202309&type=daily_treasury_yield_curve",
+  "tenor_days": [30, 60, 90, 120, 180, 365],
+  "bey_percent": [5.51, 5.55, 5.53, 5.58, 5.47, 5.36]
+}
