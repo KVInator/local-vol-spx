@@ -12,9 +12,35 @@ from diagnostics import (
     dupire,
 )
 from pricing import black_call, black_time_value, invert_time_value
+from validation import SSVIValidator
 
 
 class TotalVarianceControls(unittest.TestCase):
+
+    def test_ssvi_validation_grid_is_distinct_and_inputs_are_preserved(self):
+        _, quotes, carry = surface_fixture()
+        original_quotes, original_carry = quotes.copy(deep=True), carry.copy(deep=True)
+        tables = SSVIValidator().run(quotes, carry)
+        pd.testing.assert_frame_equal(quotes, original_quotes)
+        pd.testing.assert_frame_equal(carry, original_carry)
+        constrained = tables["ssvi_shape_checks"].query("route == 'ssvi_constrained'")
+        self.assertTrue(constrained.admissible.eq(constrained.supported).all())
+        fields = [
+            "negative_calendar_derivatives",
+            "negative_density_samples",
+            "ill_conditioned_denominators",
+            "increasing_prices",
+            "vertical_spread_violations",
+            "negative_price_butterflies",
+            "calendar_price_violations",
+        ]
+        self.assertTrue(constrained[fields].sum().eq(0).all())
+        samples = tables["ssvi_surface_samples"]
+        first = samples.loc[samples.days.eq(samples.days.min())]
+        self.assertTrue((np.diff(np.exp(first.y)) > 0).all())
+        self.assertTrue(first.modeled_short_end.all())
+        self.assertFalse(first.quote_derivative_supported.any())
+        self.assertEqual(len(tables["ssvi_quote_residuals"]), len(quotes))
 
     def test_otm_inversion_recovers_known_black_variance_in_both_wings(self):
         y = np.array([-0.4, -0.1, 0, 0.1, 0.4])

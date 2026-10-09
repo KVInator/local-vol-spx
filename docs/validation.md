@@ -36,6 +36,42 @@ independent convergence of every historical delta and gamma. A wider
 representative sample remains useful, particularly for short maturities and
 states with large recovered local-volatility values.
 
+## Constrained Total-Variance Checks
+
+The SSVI comparison has been checked against flat Black prices and a known
+skewed SSVI surface. Its analytical strike and time derivatives agree with
+independent finite differences. Additional controls examine broad wings,
+calendar ordering, positive density factors, expiry derivative sides, saved-model
+round trips and preservation of the input quote tables.
+
+Market checks used the original calibration-pinned quote and carry files for
+1, 20 and 29 September 2023. All three optimizers converged. The sampled SSVI
+surfaces had no calendar, density, price monotonicity, vertical-spread or convexity
+violations. The analytic parameter constraints provide the static-arbitrage
+guarantee; a finite sampling grid supplies a separate implementation check.
+
+Quote adequacy remains unresolved. RMS residuals were 7.91, 5.25 and 5.23 original
+half-spreads, with many fitted prices outside their original bands. The
+[results document](results.md) records the counts. These outcomes do not support
+using this SSVI fit as a validated replacement for the AH hedge diffusion.
+
+To inspect one completed date from the historical cache, run from the clean
+repository:
+
+```bash
+PYTHONPATH=src python scripts/validate_model.py \
+  --method ssvi \
+  --study ../outputs/historical_evaluation/full_2013_2023_v1 \
+  --date 2015-06-19 \
+  --output outputs/validation/ssvi_2015-06-19
+```
+
+This fits that date's saved quotes and writes its SSVI parameters, quote-fit
+tables, shape checks and Dupire samples to the requested output folder. It does
+not launch a hedge study. The audit retains a snapshot of the live study index
+and checks the immutable consumed files, so a later indexed date can be added
+by the running process without invalidating this comparison.
+
 ## Black–Scholes and CEV Controls
 
 The controlled hedging experiment uses Black–Scholes and square-root CEV, with
@@ -66,7 +102,7 @@ within entry dates and across overlapping holding periods.
 
 ## Clean-Code Verification
 
-The clean snapshot passed 262 unit tests, including checks on saved-output
+The original clean snapshot passed 262 unit tests, including checks on saved-output
 integrity, copied study folders and directory symlinks. These tests use small
 controlled inputs.
 
@@ -92,10 +128,10 @@ headless display capture. They do not verify IPython's notebook rendering.
 ## Remaining Validation Work
 
 The full-history evaluation still needs final coverage, account reconciliation
-and uncertainty review after it finishes. The quote-total-variance comparison
-also needs a constrained construction before it can serve as a validated
-alternative diffusion. AH calibration-bump and PDE-vega sensitivities remain
-a separate unfinished study.
+and uncertainty review after it finishes. A constrained SSVI construction is
+available, but its market fit needs improvement and its PDE prices and Greeks
+have not been validated for historical hedging. AH calibration-bump and
+PDE-vega sensitivities remain a separate unfinished study.
 
 Those additions should be developed and checked separately from the running
 historical study, with their inputs and settings recorded before comparison.

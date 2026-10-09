@@ -4,6 +4,9 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
+import importlib.util
+import json
 
 import matplotlib
 
@@ -62,7 +65,9 @@ class ResultsTests(unittest.TestCase):
                     saved = StudyResults(folder)
                     self.assertEqual(saved.folder, copied.resolve())
                     self.assertTrue(
-                        saved.dated_folder(self.dates[0]).is_relative_to(copied.resolve())
+                        saved.dated_folder(self.dates[0]).is_relative_to(
+                            copied.resolve()
+                        )
                     )
                     self.assertEqual(saved.model(self.dates[0]).spot, 100.0)
 
@@ -79,6 +84,96 @@ class ResultsTests(unittest.TestCase):
             self.assertTrue((Path(target) / "results.md").exists())
         with self.assertRaisesRegex(ValueError, "separate"):
             saved.export(saved.folder / "report")
+
+    def test_ssvi_validation_preserves_a_live_index_snapshot(self):
+        spec = importlib.util.spec_from_file_location(
+            "validate_cli",
+            Path(__file__).resolve().parents[1] / "scripts/validate_model.py",
+        )
+        cli = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli)
+        original_run = cli.SSVIValidator.run
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = Path(temporary) / "study"
+            shutil.copytree(self.study.output, copied)
+            output = Path(temporary) / "analysis"
+
+            def advancing_run(validator, quotes, carry):
+                result = original_run(validator, quotes, carry)
+                path = copied / "run_index.json"
+                index = json.loads(path.read_text())
+                index["live_progress_marker"] = True
+                path.write_text(json.dumps(index))
+                return result
+
+            with patch.object(cli.SSVIValidator, "run", advancing_run), patch(
+                "sys.argv",
+                [
+                    "validate_model.py",
+                    "--study",
+                    str(copied),
+                    "--date",
+                    self.dates[0],
+                    "--method",
+                    "ssvi",
+                    "--output",
+                    str(output),
+                ],
+            ), patch("builtins.print"):
+                cli.main()
+            self.assertTrue(
+                json.loads((copied / "run_index.json").read_text())[
+                    "live_progress_marker"
+                ]
+            )
+            self.assertNotIn(
+                "live_progress_marker",
+                json.loads((output / "study_index_snapshot.json").read_text()),
+            )
+            audit = json.loads((output / "audit.json").read_text())
+            self.assertNotIn(str(copied / "run_index.json"), audit["input_sha256"])
+            self.assertTrue(audit["ssvi_fit"]["optimizer_converged"])
+
+    def test_ssvi_validation_rejects_changed_immutable_quotes(self):
+        spec = importlib.util.spec_from_file_location(
+            "validate_cli",
+            Path(__file__).resolve().parents[1] / "scripts/validate_model.py",
+        )
+        cli = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli)
+        original_run = cli.SSVIValidator.run
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = Path(temporary) / "study"
+            shutil.copytree(self.study.output, copied)
+            saved = StudyResults(copied)
+            prefix = saved.model_record(
+                self.dates[0], "UNKNOWN"
+            ).model_file.removesuffix("_ah_surface.json")
+            quote_file = (
+                saved.dated_folder(self.dates[0]) / f"{prefix}_quote_residuals.csv"
+            )
+
+            def changed_input_run(validator, quotes, carry):
+                result = original_run(validator, quotes, carry)
+                quote_file.write_bytes(quote_file.read_bytes() + b"\n")
+                return result
+
+            with patch.object(cli.SSVIValidator, "run", changed_input_run), patch(
+                "sys.argv",
+                [
+                    "validate_model.py",
+                    "--study",
+                    str(copied),
+                    "--date",
+                    self.dates[0],
+                    "--method",
+                    "ssvi",
+                    "--output",
+                    str(Path(temporary) / "analysis"),
+                ],
+            ), patch("builtins.print"):
+                with self.assertRaisesRegex(ValueError, "Input changed"):
+                    cli.main()
 
 
 if __name__ == "__main__":

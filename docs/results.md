@@ -65,10 +65,27 @@ All 22 October AH models fitted. The independent quote-PCHIP construction still
 contained negative densities and some negative calendar derivatives, with gaps
 in recovered local volatility where derivative conditions failed.
 
-That construction remains a diagnostic comparison. It has not completed the
-project's separate objective of a constrained independent total-variance
-surface. A successful AH fit and a valid independent interpolation are different
-results.
+That construction remains a diagnostic comparison. A separate constrained SSVI
+surface is now available, with analytic conditions for calendar and butterfly
+arbitrage. Its first market checks used the original September quote and carry
+inputs on three dates:
+
+| Quote date | Quotes | Expiries | RMS half-spreads | Outside original bands |
+| --- | ---: | ---: | ---: | ---: |
+| 2023-09-01 | 2,442 | 24 | 7.9092 | 2,062 |
+| 2023-09-20 | 2,432 | 26 | 5.2548 | 1,767 |
+| 2023-09-29 | 2,627 | 25 | 5.2338 | 1,722 |
+
+All three optimizers converged, and the sampled surfaces passed the calendar,
+density and price-shape checks. Every checked source quote entered calibration;
+prices were not clipped into their bands. The large residuals show the limit of
+this fixed-shape SSVI family. Eliminating arbitrage has not made the fit accurate
+enough to replace the AH hedge model.
+
+This completes a constrained construction, with quote adequacy and PDE hedge
+validation still outstanding. The comparison has not changed the frozen
+historical calculation. Its formulas and scope are described in
+[Methods](methods.md) and [Validation](validation.md).
 
 ## Controlled Simulation
 
@@ -106,7 +123,7 @@ The completed market-data comparisons show mixed AH hedge performance. The
 empirical and LV smile corrections were favorable in the expanded October
 comparison, but their wider historical performance is still being evaluated.
 
-Two model studies also remain unfinished: a constrained independent
-total-variance construction, and an AH calibration-bump/PDE-vega comparison.
+Two model studies also remain unfinished: improving and validating the market
+fit of the constrained independent surface, and an AH calibration-bump/PDE-vega comparison.
 The conclusions above are limited to the calculations already completed and
 the [assumptions](assumptions.md) under which they were produced.

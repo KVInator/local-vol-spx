@@ -1,4 +1,4 @@
-"""AH calibration, saved price surfaces and recovered local variance."""
+"""AH price surfaces, recovered local variance and constrained SSVI fits."""
 
 import json
 from dataclasses import dataclass
@@ -7,10 +7,249 @@ import numpy as np
 from scipy.linalg import solve_banded
 from scipy.optimize import least_squares
 from pricing import BlackPricer
-from pricing import ImpliedVolSolver
+from pricing import ImpliedVolSolver, black_call, black_time_value, invert_time_value
 from scipy.ndimage import gaussian_filter1d
 from functools import lru_cache
 from scipy.linalg.lapack import dpttrf
+
+
+class SSVISurface:
+    """Constrained total variance, with linear monotone ATM variance in time.
+
+    Uses phi(theta) = eta / sqrt(theta * (1 + theta)). The parameter bound
+    eta**2 * (1 + abs(rho)) < 4 satisfies Gatheral--Jacquier's sufficient
+    butterfly conditions at every positive theta. The ATM variance starts
+    at zero and never decreases. No extrapolation beyond the last expiry.
+    """
+
+    def __init__(self, maturities, theta, rho, eta):
+        self.maturities = np.asarray(maturities, float).copy()
+        self.theta = np.asarray(theta, float).copy()
+        self.rho, self.eta = float(rho), float(eta)
+        if (
+            self.maturities.ndim != 1
+            or self.theta.shape != self.maturities.shape
+            or len(self.maturities) < 2
+            or not np.isfinite(self.maturities).all()
+            or not np.isfinite(self.theta).all()
+            or self.maturities[0] <= 0
+            or np.any(np.diff(self.maturities) <= 0)
+            or self.theta[0] <= 0
+            or np.any(np.diff(self.theta) < 0)
+            or not np.isfinite([self.rho, self.eta]).all()
+            or abs(self.rho) >= 1
+            or self.eta < 0
+            or self.eta**2 * (1 + abs(self.rho)) >= 4
+        ):
+            raise ValueError(
+                "Require ordered positive times, monotone theta and constrained SSVI parameters."
+            )
+        self.maturities.setflags(write=False)
+        self.theta.setflags(write=False)
+
+    def _smile(self, y, theta):
+        """Return w, w_y, w_yy and w_theta at arbitrary positive theta."""
+        phi = self.eta / np.sqrt(theta * (1 + theta))
+        x = phi * y
+        radius = np.hypot(x + self.rho, np.sqrt(1 - self.rho**2))
+        slope = self.rho + (x + self.rho) / radius
+        base = 1 + self.rho * x + radius
+        w = theta * base / 2
+        wy = theta * phi * slope / 2
+        wyy = theta * phi**2 * (1 - self.rho**2) / (2 * radius**3)
+        x_theta = -x * (1 / theta + 1 / (1 + theta)) / 2
+        w_theta = base / 2 + theta * slope * x_theta / 2
+        return w, wy, wyy, w_theta
+
+    def evaluate(self, y, time, side="right", strike_side="right"):
+        y = np.atleast_1d(np.asarray(y, float))
+        if (
+            y.ndim != 1
+            or not np.isfinite(y).all()
+            or np.ndim(time) != 0
+            or not np.isfinite(time)
+        ):
+            raise ValueError("Require finite one-dimensional y and scalar T.")
+        if side not in ("left", "right") or strike_side not in ("left", "right"):
+            raise ValueError("Derivative sides must be left or right.")
+        nearest = int(np.argmin(abs(self.maturities - time)))
+        if abs(self.maturities[nearest] - time) <= 1e-14:
+            time = float(self.maturities[nearest])
+        empty = np.full(y.shape, np.nan)
+        if not 0 < time <= self.maturities[-1]:
+            return dict(
+                w=empty.copy(),
+                wy=empty.copy(),
+                wyy=empty.copy(),
+                wt=empty.copy(),
+                supported=np.zeros(y.shape, bool),
+                at_strike_knot=np.zeros(y.shape, bool),
+            )
+        times, values = np.r_[0.0, self.maturities], np.r_[0.0, self.theta]
+        index = np.clip(
+            np.searchsorted(times, time, side=side) - 1, 0, len(self.theta) - 1
+        )
+        theta_t = (values[index + 1] - values[index]) / (
+            times[index + 1] - times[index]
+        )
+        theta = values[index] + (time - times[index]) * theta_t
+        w, wy, wyy, w_theta = self._smile(y, theta)
+        wt = w_theta * theta_t
+        if time == self.maturities[-1] and side == "right":
+            wt = empty.copy()
+        return dict(
+            w=w,
+            wy=wy,
+            wyy=wyy,
+            wt=wt,
+            supported=np.isfinite(wt),
+            at_strike_knot=np.zeros(y.shape, bool),
+        )
+
+    def normalized_call(self, normalized_strikes, time):
+        z = np.asarray(normalized_strikes, float)
+        if not np.isfinite(z).all() or np.any(z <= 0):
+            raise ValueError("Normalized strikes must be finite and positive.")
+        if time == 0:
+            return np.maximum(1 - z, 0)
+        values = self.evaluate(np.log(z).ravel(), time, side="left")
+        if not values["supported"].all():
+            raise ValueError("Maturity lies outside the fitted SSVI range.")
+        return black_call(np.log(z).ravel(), values["w"]).reshape(z.shape)
+
+    def constraints(self):
+        return {
+            "minimum_atm_variance_slope": float(
+                np.min(
+                    np.diff(np.r_[0.0, self.theta])
+                    / np.diff(np.r_[0.0, self.maturities])
+                )
+            ),
+            "global_wing_bound": self.eta * (1 + abs(self.rho)),
+            "global_curvature_bound": self.eta**2 * (1 + abs(self.rho)),
+            "wing_bound_limit_strict": 4.0,
+            "curvature_bound_limit_strict": 4.0,
+            "calendar_derivative_ratio_upper_bound": 0.5,
+            "guarantee": "Sufficient static-arbitrage conditions for all finite log-moneyness and 0 < T <= last expiry, with one-sided time derivatives at pillars.",
+        }
+
+    def save(self, path):
+        Path(path).write_text(
+            json.dumps(
+                {
+                    "schema": "constrained_ssvi_v1",
+                    "maturities": self.maturities.tolist(),
+                    "theta": self.theta.tolist(),
+                    "rho": self.rho,
+                    "eta": self.eta,
+                },
+                indent=2,
+                allow_nan=False,
+            )
+            + "\n"
+        )
+
+    @classmethod
+    def load(cls, path):
+        data = json.loads(Path(path).read_text())
+        if data.get("schema") != "constrained_ssvi_v1":
+            raise ValueError("Unknown SSVI model schema.")
+        return cls(data["maturities"], data["theta"], data["rho"], data["eta"])
+
+
+class SSVICalibrator:
+    """Fit every checked source midpoint in its original half-spread units."""
+
+    def __init__(self, max_evaluations=400):
+        if not isinstance(max_evaluations, int) or max_evaluations < 1:
+            raise ValueError("Use a positive optimizer evaluation limit.")
+        self.max_evaluations = max_evaluations
+
+    def calibrate(self, quotes, carry):
+        from calibration import DailyAHCalibrator
+
+        q, c = DailyAHCalibrator()._checked(quotes, carry)
+        times = c.maturity_years.to_numpy(float)
+        if len(times) < 2 or any(
+            len(q.loc[q.expire_date.eq(e)]) < 3 for e in c.expire_date
+        ):
+            raise ValueError(
+                "SSVI requires at least two expiries with three strikes each."
+            )
+        expiry_index = q.expire_date.map(
+            {e: i for i, e in enumerate(c.expire_date)}
+        ).to_numpy(int)
+        y = np.log(q.strike.to_numpy(float) / q.forward.to_numpy(float))
+        scale = (q.forward * q.discount_factor).to_numpy(float)
+        source_mid = ((q.source_bid + q.source_ask) / 2).to_numpy(float)
+        width = q.call_half_width.to_numpy(float)
+        intrinsic = np.where(
+            q.source_kind.eq("call"),
+            np.maximum(1 - np.exp(y), 0),
+            np.maximum(np.exp(y) - 1, 0),
+        )
+        observed_w, iv_status = invert_time_value(y, source_mid / scale - intrinsic)
+        initial = []
+        for i in range(len(times)):
+            valid = np.flatnonzero((expiry_index == i) & (iv_status == "ready"))
+            if len(valid) == 0:
+                raise ValueError(
+                    "An expiry has no valid IV for initialization; no expiry is silently dropped."
+                )
+            closest = valid[np.argsort(abs(y[valid]))[: min(5, len(valid))]]
+            initial.append(float(np.median(observed_w[closest])))
+        increments = np.maximum(
+            np.diff(np.r_[0.0, np.maximum.accumulate(initial)]), 1e-10
+        )
+
+        def unpack(parameters):
+            rho, fraction = parameters[:2]
+            eta = fraction * 2 / np.sqrt(1 + abs(rho))
+            return SSVISurface(times, np.cumsum(np.exp(parameters[2:])), rho, eta)
+
+        def residual(parameters):
+            model = unpack(parameters)
+            w = model._smile(y, model.theta[expiry_index])[0]
+            prices = scale * (intrinsic + black_time_value(y, w))
+            return (prices - source_mid) / width
+
+        fits = []
+        for rho in (-0.6, 0.0):
+            fits.append(
+                least_squares(
+                    residual,
+                    np.r_[rho, 0.2, np.log(increments)],
+                    bounds=(
+                        np.r_[-0.999, 0.0, np.full(len(times), -30.0)],
+                        np.r_[0.999, 1 - 1e-6, np.full(len(times), 5.0)],
+                    ),
+                    max_nfev=self.max_evaluations,
+                    ftol=1e-9,
+                    xtol=1e-9,
+                    gtol=1e-9,
+                )
+            )
+        fit = min(fits, key=lambda item: float(item.fun @ item.fun))
+        model = unpack(fit.x)
+        report = {
+            "optimizer_converged": bool(fit.success),
+            "optimizer_message": str(fit.message),
+            "selected_start_evaluations": int(fit.nfev),
+            "starts": len(fits),
+            "quotes": len(q),
+            "expiries": len(times),
+            "initialization_valid_ivs": int((iv_status == "ready").sum()),
+            "fit_rms_half_spreads": float(np.sqrt(np.mean(fit.fun**2))),
+            "fit_max_half_spreads": float(abs(fit.fun).max()),
+            "objective": "Every checked original source midpoint, weighted by original half-spread; no quote removal or clipping.",
+            "phi": "eta / sqrt(theta * (1 + theta))",
+            "rho": model.rho,
+            "eta": model.eta,
+            "rho_optimizer_bounds": [-0.999, 0.999],
+            "log_variance_increment_optimizer_bounds": [-30.0, 5.0],
+            "constraints": model.constraints(),
+        }
+        return model, report
 
 
 def linear_weights(points, nodes):

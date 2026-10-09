@@ -2,14 +2,15 @@
   "baseline": "Original published source snapshot plus the delivered known-model and historical evaluation updates.",
   "candidate": "Separate main-workflow refactor; original exploratory spline/tail and numbered studies remain in the original checkout.",
   "unit_tests": {
-    "count": 262,
+    "count": 273,
     "status": "passed",
-    "elapsed_wall_seconds": 76.179,
+    "elapsed_wall_seconds": 49.837,
     "environment": {
       "python": "3.12.14",
       "numpy": "2.3.5",
       "pandas": "2.2.3",
-      "scipy": "1.17.0"
+      "scipy": "1.17.0",
+      "exchange_calendars": "4.11.3"
     }
   },
   "controlled_history": {
@@ -49,7 +50,8 @@
     "saved_known_model_arrays": 36,
     "tables_and_arrays_exactly_equal": true,
     "saved_daily_model_json_exactly_equal": true,
-    "scope": "Artificial nine-reference-session history, missing-session variant, prefix/resume and Black-Scholes/CEV controls. The raw 2013-2023 SPX history was not rerun here."
+    "scope": "Artificial nine-reference-session history, missing-session variant, prefix/resume and Black-Scholes/CEV controls. The raw 2013-2023 SPX history was not rerun here.",
+    "verification_stage": "Original clean snapshot, before the constrained SSVI addition; these controlled history comparisons were not repeated for the addition."
   },
   "notebook": {
     "code_cells_executed_per_scope": 10,
@@ -89,8 +91,8 @@
     "src/selection.py": "1555dcec92f99dcccaa76edc7c4ee373d7dcb6695460edb831822c6b823ab110",
     "src/simulation.py": "1e7af88d5b34929a21cef3505a98e794ac681c77a9753e500f6398b74165e98a",
     "src/study.py": "3b91a0f7cfd390f61a01a7d34c449f626eb40e7977f166f05f61a14f4891c132",
-    "src/surface.py": "866f66b44ca6257b814792d0964a08b65dc5e6a4162c99a06eccecfce4b8168b",
-    "src/validation.py": "b61f1ff479b76720dc1e67ad14e6bb9de567d589552269ab7bd482ee110c0a77"
+    "src/surface.py": "aab153038e56584a7b44527cb93eba616cf09b942aa111a07eceb39292dfbc9e",
+    "src/validation.py": "42f56f76f3844736da1bca08ee75d863d5cdaea96949898abc3dae4b5c3dcc5c"
   },
   "portability_fix": {
     "file": "tests/test_results.py",
@@ -170,5 +172,108 @@
     "source_hashes_unchanged": 18,
     "historical_calculations_changed": false,
     "unit_tests_rerun": false
+  },
+  "previous_unit_tests": {
+    "count": 262,
+    "status": "passed",
+    "elapsed_wall_seconds": 76.179,
+    "environment": {
+      "python": "3.12.14",
+      "numpy": "2.3.5",
+      "pandas": "2.2.3",
+      "scipy": "1.17.0"
+    }
+  },
+  "constrained_surface_update": {
+    "date": "2026-10-09",
+    "model": "SSVI with phi(theta) = eta / sqrt(theta * (1 + theta)); shared rho and eta, monotone linear ATM variance with theta(0)=0.",
+    "scope": "Optional single-date fit and Dupire diagnostics through the existing validation command. No historical hedge runner or strategy changed.",
+    "constraints": "Strict eta^2(1+abs(rho)) < 4 and abs(rho) < 1 satisfy the sufficient butterfly conditions; monotone theta and the selected phi satisfy the calendar condition.",
+    "derivative_policy": "Analytical strike derivatives; one-sided expiry derivatives; no maturity extrapolation after the last fitted expiry. Wings and the origin-to-first-expiry interval are modeled, not new quote support.",
+    "input_policy": "Every checked original source midpoint is fitted in original half-spread units; quote and carry values are not altered.",
+    "known_controls": [
+      "Flat Black price and Dupire variance recovery",
+      "Known skewed SSVI parameter recovery",
+      "Independent derivative finite differences",
+      "Broad-wing density factors and calendar ordering",
+      "Expiry-side behavior and unavailable maturity intervals",
+      "Saved-model round trip",
+      "Input table preservation and distinct validation grid"
+    ],
+    "cli_controls": [
+      "Single-date artificial study fit: passed",
+      "A live index advancing during the fit preserves the index snapshot: passed",
+      "A consumed immutable quote file changing during the fit is rejected: passed"
+    ],
+    "unit_tests": {
+      "count": 273,
+      "status": "passed",
+      "new_tests": 11
+    },
+    "previous_ah_asts": {
+      "surface.py": "All seven original functions/classes unchanged",
+      "validation.py": "All three original functions/classes unchanged"
+    },
+    "prior_source_sha256": {
+      "src/surface.py": "866f66b44ca6257b814792d0964a08b65dc5e6a4162c99a06eccecfce4b8168b",
+      "src/validation.py": "b61f1ff479b76720dc1e67ad14e6bb9de567d589552269ab7bd482ee110c0a77"
+    },
+    "market_inputs_sha256": {
+      "audit.json": "d0938973f1a21a884d450459574353e82c7be8fe07f392e093016c6e6c0c62b5",
+      "calibration_quotes.csv": "bd23211df474819315e724fbafdf48739bc5de1c586590d7d9a2ee7f8efdaef3",
+      "primary_carry.csv": "0cccc4e85dc83b1e320c38b1082f5097287513a92dd6924f35e5037944112921"
+    },
+    "market_records": [
+      {
+        "quote_date": "2023-09-01",
+        "quotes": 2442,
+        "expiries": 24,
+        "optimizer_converged": true,
+        "rms_half_spreads": 7.909174628787906,
+        "max_half_spreads": 32.26047178418027,
+        "outside_original_bands": 2062,
+        "max_price_residual_points": 2.8419660171161567,
+        "ssvi_shape_violations": 0,
+        "sampled_derivative_states": 90009,
+        "original_pchip_negative_density_states": 7016,
+        "rho": -0.47628600317572295,
+        "eta": 0.9706123384995803
+      },
+      {
+        "quote_date": "2023-09-20",
+        "quotes": 2432,
+        "expiries": 26,
+        "optimizer_converged": true,
+        "rms_half_spreads": 5.254800938394987,
+        "max_half_spreads": 27.223212251048,
+        "outside_original_bands": 1767,
+        "max_price_residual_points": 3.5260442367998284,
+        "ssvi_shape_violations": 0,
+        "sampled_derivative_states": 97407,
+        "original_pchip_negative_density_states": 5662,
+        "rho": -0.5380835424495165,
+        "eta": 0.7886958938467973
+      },
+      {
+        "quote_date": "2023-09-29",
+        "quotes": 2627,
+        "expiries": 25,
+        "optimizer_converged": true,
+        "rms_half_spreads": 5.233791893463695,
+        "max_half_spreads": 36.6229514806038,
+        "outside_original_bands": 1722,
+        "max_price_residual_points": 2.031462677926669,
+        "ssvi_shape_violations": 0,
+        "sampled_derivative_states": 93708,
+        "original_pchip_negative_density_states": 6055,
+        "rho": -0.6114015595586689,
+        "eta": 0.6381207948132577
+      }
+    ],
+    "market_scope": "Three dates from the original calibration-pinned September 2023 SPX quote and carry files; not a full-history rerun.",
+    "market_fit_assessment": "Insufficient for replacing the AH hedge model: RMS errors of 5.23-7.91 half-spreads and many original-band exclusions. The constrained construction passed shape checks; alternative diffusion price/Greek and hedge validation remains unfinished.",
+    "plots": "Three-date quote-fit plots generated with Matplotlib Agg; 1 and 29 September figures visually inspected.",
+    "notebook_numerical_calculations_changed": false,
+    "original_running_repository_changed": false
   }
 }

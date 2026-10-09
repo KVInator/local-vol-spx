@@ -167,6 +167,9 @@ from scipy.linalg import solve_banded
 from surface import AHLocalVariance, log_positive_solve
 from surface import AHGrid, AndreasenHugeSurface
 from pde import ForwardPDESolver
+from surface import SSVISurface, SSVICalibrator
+from diagnostics import dupire
+from fixtures import surface_fixture
 
 
 def ah_local_vol_make_surface(intervals=800):
@@ -179,6 +182,146 @@ def ah_local_vol_make_surface(intervals=800):
         [np.array([-0.2, 0, 0.2])] * 2,
         [np.log([0.24, 0.18, 0.16]), np.log([0.3, 0.22, 0.19])],
     )
+
+
+class SSVIControls(unittest.TestCase):
+    def test_flat_black_prices_and_dupire_variance(self):
+        model = SSVISurface([0.1, 0.3, 0.6], [0.004, 0.012, 0.024], -0.7, 0.0)
+        y = np.linspace(-0.3, 0.3, 41)
+        for time in (1e-6, 0.05, 0.1, 0.2, 0.6):
+            result = model.evaluate(y, time, "left")
+            local = dupire(y, result["w"], result["wy"], result["wyy"], result["wt"])
+            np.testing.assert_allclose(local["variance"], 0.04, rtol=2e-14)
+            np.testing.assert_allclose(
+                100 * model.normalized_call(np.exp(y), time),
+                BlackPricer(100, 1, time).price(100 * np.exp(y), 0.2, "call"),
+                atol=2e-14,
+            )
+
+    def test_closed_form_derivatives_match_independent_bumps(self):
+        model = SSVISurface([0.1, 0.3, 0.6], [0.004, 0.008, 0.018], -0.7, 1.2)
+        y, time, h, dt = np.array([-0.15, -0.02, 0.0, 0.07, 0.2]), 0.2, 1e-5, 1e-6
+        values = model.evaluate(y, time)
+        plus, minus = model.evaluate(y + h, time)["w"], model.evaluate(y - h, time)["w"]
+        np.testing.assert_allclose(
+            values["wy"], (plus - minus) / (2 * h), rtol=2e-7, atol=1e-10
+        )
+        np.testing.assert_allclose(
+            values["wyy"], (plus - 2 * values["w"] + minus) / h**2, rtol=3e-6, atol=2e-7
+        )
+        np.testing.assert_allclose(
+            values["wt"],
+            (model.evaluate(y, time + dt)["w"] - model.evaluate(y, time - dt)["w"])
+            / (2 * dt),
+            rtol=1e-8,
+        )
+
+    def test_dense_wing_calendar_and_density_checks(self):
+        y = np.linspace(-10, 10, 1001)
+        for rho in (-0.99, 0.0, 0.99):
+            model = SSVISurface(
+                [0.1, 0.3, 0.6],
+                [0.004, 0.008, 0.018],
+                rho,
+                0.99 * 2 / np.sqrt(1 + abs(rho)),
+            )
+            previous = np.zeros_like(y)
+            for time in np.geomspace(1e-6, 0.6, 30):
+                values = model.evaluate(y, time, "left")
+                local = dupire(
+                    y, values["w"], values["wy"], values["wyy"], values["wt"]
+                )
+                self.assertGreaterEqual(float(values["wt"].min()), 0.0)
+                self.assertGreater(float(local["g"].min()), 0.0)
+                self.assertTrue(local["admissible"].all())
+                self.assertTrue((values["w"] >= previous - 1e-12).all())
+                previous = values["w"]
+
+    def test_pillar_derivatives_are_one_sided_and_prices_join(self):
+        model = SSVISurface([0.1, 0.3], [0.004, 0.008], -0.5, 0.8)
+        y, time, dt = np.array([-0.08, 0.0, 0.08]), 0.1, 1e-7
+        left, right = model.evaluate(y, time, "left"), model.evaluate(y, time, "right")
+        np.testing.assert_allclose(left["w"], right["w"], atol=1e-15)
+        self.assertGreater(float(np.max(abs(left["wt"] - right["wt"]))), 0.01)
+        for side, sign in [("left", -1), ("right", 1)]:
+            derivative = (
+                -3 * right["w"]
+                + 4 * model.evaluate(y, time + sign * dt)["w"]
+                - model.evaluate(y, time + sign * 2 * dt)["w"]
+            ) / (sign * 2 * dt)
+            np.testing.assert_allclose(
+                model.evaluate(y, time, side)["wt"], derivative, rtol=2e-8, atol=1e-10
+            )
+        self.assertFalse(model.evaluate(y, 0.3, "right")["supported"].any())
+        self.assertTrue(np.isnan(model.evaluate(y, 0.3, "right")["wt"]).all())
+        self.assertTrue(model.evaluate(y, 0.3 + 1e-16, "left")["supported"].all())
+        for unsupported in (0.0, -0.1, 0.4):
+            self.assertFalse(model.evaluate(y, unsupported)["supported"].any())
+
+    def test_constructor_rejects_invalid_or_unconstrained_inputs(self):
+        for times, theta, rho, eta in [
+            ([0.1, 0.3], [0.01, 0.005], 0.0, 1.0),
+            ([0.1, 0.1], [0.01, 0.02], 0.0, 1.0),
+            ([0.1, 0.3], [0.01, 0.02], 1.0, 1.0),
+            ([0.1, 0.3], [0.01, 0.02], 0.0, 2.0),
+            ([0.1, 0.3], [0.01, np.nan], 0.0, 1.0),
+        ]:
+            with self.assertRaises(ValueError):
+                SSVISurface(times, theta, rho, eta)
+
+    def test_saved_surface_round_trip(self):
+        model = SSVISurface([0.1, 0.3], [0.004, 0.008], -0.5, 0.8)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "ssvi.json"
+            model.save(path)
+            copied = SSVISurface.load(path)
+            for key, values in model.evaluate(np.array([-0.1, 0.0, 0.1]), 0.2).items():
+                np.testing.assert_array_equal(
+                    copied.evaluate(np.array([-0.1, 0.0, 0.1]), 0.2)[key], values
+                )
+
+    def test_calibration_preserves_all_flat_black_quotes(self):
+        _, quotes, carry = surface_fixture()
+        model, report = SSVICalibrator().calibrate(quotes, carry)
+        self.assertTrue(report["optimizer_converged"], report)
+        self.assertEqual(report["quotes"], len(quotes))
+        self.assertLess(report["fit_rms_half_spreads"], 1e-4)
+        np.testing.assert_allclose(
+            model.theta, carry.maturity_years.to_numpy() * 0.04, atol=1e-8
+        )
+
+    def test_calibration_recovers_a_known_skewed_surface(self):
+        from pricing import black_time_value
+
+        _, quotes, carry = surface_fixture()
+        known = SSVISurface(carry.maturity_years, [0.0007, 0.0015, 0.003], -0.6, 0.8)
+        for row in carry.to_dict("records"):
+            selected = quotes.expire_date.eq(row["expire_date"])
+            y = np.log(quotes.loc[selected, "strike"].to_numpy() / row["forward"])
+            w = known.evaluate(y, row["maturity_years"], "left")["w"]
+            mid = row["discount_factor"] * row["forward"] * black_time_value(y, w)
+            width = np.minimum(0.001, mid / 4)
+            offset = np.where(
+                y < 0,
+                row["discount_factor"]
+                * (row["forward"] - quotes.loc[selected, "strike"].to_numpy()),
+                0.0,
+            )
+            for field, values in {
+                "source_bid": mid - width,
+                "source_ask": mid + width,
+                "call_bid": mid - width + offset,
+                "call_ask": mid + width + offset,
+                "call_mid": mid + offset,
+                "call_half_width": width,
+            }.items():
+                quotes.loc[selected, field] = values
+        fitted, report = SSVICalibrator().calibrate(quotes, carry)
+        self.assertTrue(report["optimizer_converged"], report)
+        self.assertLess(report["fit_rms_half_spreads"], 1e-6)
+        self.assertAlmostEqual(fitted.rho, known.rho, places=6)
+        self.assertAlmostEqual(fitted.eta, known.eta, places=6)
+        np.testing.assert_allclose(fitted.theta, known.theta, rtol=1e-7)
 
 
 class TestAHLocalVariance(unittest.TestCase):

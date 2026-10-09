@@ -44,6 +44,46 @@ independent interpolation choice. It is unconstrained and can retain negative
 calendar derivatives or densities. Invalid local-variance values remain
 unavailable. It has not been accepted as an alternative hedge diffusion.
 
+### Constrained SSVI Comparison
+
+A separate SSVI fit now provides a constrained total-variance surface. The
+original PCHIP comparison remains available so its failures can still be inspected.
+SSVI uses one ATM total-variance value per expiry, with a common skew parameter
+$\rho$ and shape parameter $\eta$:
+
+$$
+w(y,\theta)=\frac{\theta}{2}
+\left[1+\rho\varphi(\theta)y+
+\sqrt{(\varphi(\theta)y+\rho)^2+1-\rho^2}\right],
+\qquad \varphi(\theta)=\frac{\eta}{\sqrt{\theta(1+\theta)}}.
+$$
+
+ATM variance is nondecreasing and joined linearly in time, with $\theta(0)=0$.
+Time derivatives are one-sided at the fitted expiry
+pillars. Evaluation stops at the last fitted expiry. The short end and wings
+follow the fitted model; they do not acquire additional quote support.
+
+The constructor requires $|\rho|<1$, $\eta\geq0$ and
+$\eta^2(1+|\rho|)<4$. This enforces the sufficient butterfly conditions
+$\theta\varphi(\theta)(1+|\rho|)<4$ and
+$\theta\varphi(\theta)^2(1+|\rho|)<4$ for every positive $\theta$.
+Also, $\partial_\theta(\theta\varphi)/\varphi=1/[2(1+\theta)]$;
+together with nondecreasing ATM variance, this satisfies the calendar condition.
+These are the sufficient SSVI conditions in Gatheral and Jacquier,
+[Arbitrage-free SVI volatility surfaces](https://arxiv.org/abs/1204.0646),
+Theorems 4.1 and 4.2 and equation 4.5.
+
+Calibration minimizes price errors in original quote half-spread units. Every
+checked source midpoint enters the fit. Quotes are neither clipped nor removed
+to improve the result. Invalid IVs affect initialization availability, and their
+statuses remain in the exported observations. Closed-form $w_y$, $w_{yy}$ and
+$w_T$ feed the existing Dupire calculation.
+
+The three-date September check found no sampled shape violations, but substantial
+quote-fit errors. This fixed-shape SSVI family needs more flexibility before it
+can be accepted as an alternative hedge model. The current historical study
+continues to use its frozen AH implementation.
+
 ## Hedge Rules
 
 | Method | Calculation |

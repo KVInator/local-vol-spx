@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from pde import AHBackwardPricer
 from pde import ForwardPDESolver
+from surface import SSVICalibrator
+from diagnostics import TotalVarianceSurface, dupire
 
 
 @dataclass(frozen=True)
@@ -77,6 +79,147 @@ def quote_metrics(prices, quotes):
         "outside_original_bands": int(outside.sum()),
         "max_price_residual_points": float(abs(error).max()),
     }
+
+
+class SSVIValidator:
+    """Fit a constrained quote surface and retain the unconstrained comparison."""
+
+    def __init__(self, max_evaluations=400):
+        self.calibrator = SSVICalibrator(max_evaluations)
+
+    def run(self, quotes, carry):
+        self.surface, self.fit_report = self.calibrator.calibrate(quotes, carry)
+        model = self.surface
+        benchmark = TotalVarianceSurface(quotes, carry)
+        labels = {"quote_date": carry.quote_date.iloc[0], "root": carry.root.iloc[0]}
+        residuals = benchmark.observations.copy()
+        residuals["ssvi_call"] = np.nan
+        fit_rows = []
+        for row in carry.sort_values("maturity_years").to_dict("records"):
+            group = residuals.loc[residuals.expire_date.eq(row["expire_date"])]
+            prices = (
+                row["forward"]
+                * row["discount_factor"]
+                * model.normalized_call(
+                    group.strike.to_numpy() / row["forward"], row["maturity_years"]
+                )
+            )
+            residuals.loc[group.index, "ssvi_call"] = prices
+            fit_rows.append(
+                {
+                    **labels,
+                    "expire_date": row["expire_date"],
+                    "days": 365 * row["maturity_years"],
+                    **quote_metrics(prices, group),
+                }
+            )
+        fit_rows.insert(
+            0,
+            {
+                **labels,
+                "expire_date": "all",
+                "days": np.nan,
+                **quote_metrics(residuals.ssvi_call.to_numpy(), residuals),
+            },
+        )
+        residuals["ssvi_price_residual"] = residuals.ssvi_call - residuals.call_mid
+        residuals["ssvi_residual_half_spreads"] = (
+            residuals.ssvi_price_residual / residuals.call_half_width
+        )
+
+        times = np.r_[0.0, model.maturities]
+        sampled_times = np.unique(
+            np.r_[
+                model.maturities,
+                (times[1:] + times[:-1]) / 2,
+                [t for t in (0.25 / 365, 1 / 365) if t < model.maturities[-1]],
+            ]
+        )
+        y = np.unique(
+            np.round(np.r_[np.linspace(-2, 2, 801), np.linspace(-0.12, 0.12, 481)], 12)
+        )
+        z = np.exp(y)
+        samples, checks = [], []
+        previous_calls = np.maximum(1 - z, 0)
+        for time in sampled_times:
+            sides = (
+                ("left", "right")
+                if time in model.maturities[:-1]
+                else ("left",) if time == model.maturities[-1] else ("right",)
+            )
+            calls = model.normalized_call(z, time)
+            slopes = np.diff(calls) / np.diff(z)
+            for side in sides:
+                fitted = model.evaluate(y, time, side)
+                original = benchmark.evaluate(y, time, side)
+                for route, values in [
+                    ("ssvi_constrained", fitted),
+                    ("quote_pchip", original),
+                ]:
+                    local = dupire(
+                        y, values["w"], values["wy"], values["wyy"], values["wt"]
+                    )
+                    supported = values["supported"]
+                    record = {
+                        **labels,
+                        "route": route,
+                        "days": 365 * time,
+                        "side": side,
+                        "samples": len(y),
+                        "supported": int(supported.sum()),
+                        "admissible": int((supported & local["admissible"]).sum()),
+                        "negative_calendar_derivatives": int(
+                            (supported & (values["wt"] < -1e-10)).sum()
+                        ),
+                        "negative_density_samples": int(
+                            (supported & (local["density_z"] < -1e-10)).sum()
+                        ),
+                        "ill_conditioned_denominators": int(
+                            (supported & (local["g"] <= 1e-8)).sum()
+                        ),
+                    }
+                    if route == "ssvi_constrained":
+                        record.update(
+                            minimum_calendar_derivative=float(values["wt"].min()),
+                            minimum_density_factor=float(local["g"].min()),
+                            increasing_prices=int((slopes > 1e-8).sum()),
+                            vertical_spread_violations=int((slopes < -1 - 1e-8).sum()),
+                            negative_price_butterflies=int(
+                                (np.diff(slopes) < -1e-8).sum()
+                            ),
+                            calendar_price_violations=int(
+                                (calls < previous_calls - 1e-10).sum()
+                            ),
+                        )
+                        samples.append(
+                            pd.DataFrame(
+                                {
+                                    **labels,
+                                    "days": 365 * time,
+                                    "side": side,
+                                    "y": y,
+                                    "w": values["w"],
+                                    "wy": values["wy"],
+                                    "wyy": values["wyy"],
+                                    "wt": values["wt"],
+                                    "g": local["g"],
+                                    "density_z": local["density_z"],
+                                    "dupire_variance": local["variance"],
+                                    "admissible": local["admissible"],
+                                    "quote_derivative_supported": original["supported"],
+                                    "quote_price_supported": np.isfinite(original["w"]),
+                                    "modeled_short_end": time < model.maturities[0],
+                                }
+                            )
+                        )
+                    checks.append(record)
+            previous_calls = calls
+        return {
+            "ssvi_quote_fit": pd.DataFrame(fit_rows),
+            "ssvi_quote_residuals": residuals,
+            "ssvi_shape_checks": pd.DataFrame(checks),
+            "ssvi_surface_samples": pd.concat(samples, ignore_index=True),
+        }
 
 
 class DailyAHValidator:
