@@ -52,9 +52,9 @@
     "scope": "Artificial nine-reference-session history, missing-session variant, prefix/resume and Black-Scholes/CEV controls. The raw 2013-2023 SPX history was not rerun here."
   },
   "notebook": {
-    "code_cells_executed_per_scope": 8,
+    "code_cells_executed_per_scope": 10,
     "status": "passed",
-    "inputs": "Artificial saved controls with complete summaries, earlier prefix summaries, an active partial run and missing output folders.",
+    "inputs": "Artificial saved controls with complete summaries, earlier prefix summaries, an active partial run and missing output folders; indexed monthly pilot and strategy controls.",
     "scopes_checked": 4,
     "timing_check": "Six completed date-cache timestamps, one minute per interval and three reference dates remaining yielded 0.05 hours.",
     "display_check": "Headless display capture; IPython rendering was not exercised in these checks.",
@@ -138,5 +138,37 @@
       "count": 262,
       "status": "passed"
     }
+  },
+  "saved_study_notebook_update": {
+    "date": "2026-10-09",
+    "files": [
+      "notebooks/research.ipynb",
+      "verification.json"
+    ],
+    "scope": "Read the explicit September and October development pilots and October strategy comparison; report Gain, RMS, MAE, coverage and validation scope; plot date contributions, absolute-error distributions and empirical coefficients.",
+    "notebook_cells": 18,
+    "code_cells": 10,
+    "headless_status": "passed",
+    "history_scopes_checked": 4,
+    "loaded_controls": "Indexed artificial September pilot and expanded strategy run; all ten code cells executed, including warm-up and empty common-entry outcomes.",
+    "execution_scenarios_checked": [
+      "mid",
+      "option_spread",
+      "option_spread_fee"
+    ],
+    "empirical_records": "Artificial populated example with four ready fits and 240 listed training observations. Membership counts and strict endpoint ordering checked.",
+    "rejected_records": [
+      "Training endpoint at prediction time",
+      "Unknown fit ID",
+      "Incorrect membership count",
+      "Timezone missing from prediction timestamp",
+      "Nonfinite ready-fit coefficient",
+      "Producer CSV changed after the recorded output checksum"
+    ],
+    "figure_check": "Monthly contribution/distribution and populated empirical coefficient figures rendered with Matplotlib Agg and visually inspected.",
+    "display_check": "Headless display capture; interactive Jupyter/IPython rendering and the user’s actual Mac output paths were not exercised.",
+    "source_hashes_unchanged": 18,
+    "historical_calculations_changed": false,
+    "unit_tests_rerun": false
   }
 }
