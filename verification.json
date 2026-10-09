@@ -1,0 +1,142 @@
+{
+  "baseline": "Original published source snapshot plus the delivered known-model and historical evaluation updates.",
+  "candidate": "Separate main-workflow refactor; original exploratory spline/tail and numbered studies remain in the original checkout.",
+  "unit_tests": {
+    "count": 262,
+    "status": "passed",
+    "elapsed_wall_seconds": 76.179,
+    "environment": {
+      "python": "3.12.14",
+      "numpy": "2.3.5",
+      "pandas": "2.2.3",
+      "scipy": "1.17.0"
+    }
+  },
+  "controlled_history": {
+    "complete": {
+      "prefix_status": "prefix_completed",
+      "final_status": "completed",
+      "summary": {
+        "selected_entries": 126,
+        "processed_reference_dates": 9,
+        "trial_rows": 3222,
+        "coverage_rows": 7938,
+        "compared_paths": 3222,
+        "pending_paths": 0,
+        "max_reconciliation": 3.4527936065842375e-14,
+        "every_entry_greek_independently_validated": false,
+        "heldout_claim": false
+      }
+    },
+    "missing_session": {
+      "prefix_status": "prefix_completed",
+      "final_status": "completed",
+      "summary": {
+        "selected_entries": 114,
+        "processed_reference_dates": 9,
+        "trial_rows": 1152,
+        "coverage_rows": 7182,
+        "compared_paths": 1152,
+        "pending_paths": 0,
+        "max_reconciliation": 2.307182223049153e-14,
+        "every_entry_greek_independently_validated": false,
+        "heldout_claim": false
+      }
+    }
+  },
+  "comparisons": {
+    "table_comparisons": 115,
+    "saved_known_model_arrays": 36,
+    "tables_and_arrays_exactly_equal": true,
+    "saved_daily_model_json_exactly_equal": true,
+    "scope": "Artificial nine-reference-session history, missing-session variant, prefix/resume and Black-Scholes/CEV controls. The raw 2013-2023 SPX history was not rerun here."
+  },
+  "notebook": {
+    "code_cells_executed_per_scope": 8,
+    "status": "passed",
+    "inputs": "Artificial saved controls with complete summaries, earlier prefix summaries, an active partial run and missing output folders.",
+    "scopes_checked": 4,
+    "timing_check": "Six completed date-cache timestamps, one minute per interval and three reference dates remaining yielded 0.05 hours.",
+    "display_check": "Headless display capture; IPython rendering was not exercised in these checks.",
+    "distributed_outputs": "None",
+    "numerical_source_changed": false
+  },
+  "commands": {
+    "help_checks": 5,
+    "simulation_plan": "passed"
+  },
+  "layout": {
+    "src": 18,
+    "scripts": 5,
+    "tests": 10,
+    "docs": 5,
+    "notebooks": 1
+  },
+  "source_sha256": {
+    "src/artifacts.py": "2fc643a7eee940c76836f0cb2b5af9f36ab0041a65ac949b0a2f13336d0b1cb9",
+    "src/calibration.py": "7bc9f71b377841c7069016175d387f0f32316b2756dae4c37c1cd18fc9865c39",
+    "src/carry.py": "362d6f73a0d301e1dbac74c41340298f0a7182084c0f93daf43ac4bd3b7e06ea",
+    "src/data_audit.py": "0069e6bded9e78bdf9e3ddb57d22d822ea37ddb11a8144d19cc4b606ae4441fb",
+    "src/diagnostics.py": "d98b3f4606348fc386a11a869db2cdeb5157552545e2b21202212191d47c1006",
+    "src/hedging.py": "c8d4c067d35ea74fa66624f21130b36249083ce72d06af291337bf1b4e5cd9f6",
+    "src/inference.py": "996a626b5f22448645f482fe1f2558471f471c0854259a6d47b1d343b0aa7110",
+    "src/ledger.py": "aa57d3e024e6555eb5742ecf4f1559d703107d61a1f4feb5902853dc322c4572",
+    "src/market_data.py": "5a31fdcc1fed5f9073eb10f3291b75e94734cf78aa942639887cc33568cf3b74",
+    "src/paths.py": "0214e0f2f4be64519768345436a16a007c73148e506de93c16a230a8352b742d",
+    "src/pde.py": "9543a0c58daff6ecd5ee5423e64e38b3f5198191cf28f0f38cab660e55f93777",
+    "src/pricing.py": "6ff8842025c2e239ab8b723e0496742c3a2c9b7ac0308fc15d4986ea52e8e38b",
+    "src/results.py": "ab6cb9e4ea2179e2cd2a95072d7885132f71ecc828fd3aa7c857ed422731df5c",
+    "src/selection.py": "1555dcec92f99dcccaa76edc7c4ee373d7dcb6695460edb831822c6b823ab110",
+    "src/simulation.py": "1e7af88d5b34929a21cef3505a98e794ac681c77a9753e500f6398b74165e98a",
+    "src/study.py": "3b91a0f7cfd390f61a01a7d34c449f626eb40e7977f166f05f61a14f4891c132",
+    "src/surface.py": "866f66b44ca6257b814792d0964a08b65dc5e6a4162c99a06eccecfce4b8168b",
+    "src/validation.py": "b61f1ff479b76720dc1e67ad14e6bb9de567d589552269ab7bd482ee110c0a77"
+  },
+  "portability_fix": {
+    "file": "tests/test_results.py",
+    "issue": "The relocation assertion compared a canonical path with an unresolved temporary path.",
+    "change": "Resolve the expected folder and check both the copied study and a directory symlink to it.",
+    "unit_tests": {
+      "count": 262,
+      "status": "passed",
+      "elapsed_wall_seconds": 50.681
+    },
+    "source_code_changed": false
+  },
+  "documentation_update": {
+    "scope": "Five docs covering data, methods, validation, results and assumptions; notebook links updated; README deferred.",
+    "raw_result_values_changed": false,
+    "results_tests": {
+      "count": 4,
+      "status": "passed",
+      "elapsed_wall_seconds": 13.941
+    },
+    "report_exports": {
+      "scopes": [
+        "complete",
+        "earlier_prefix",
+        "no_matched_entries"
+      ],
+      "status": "passed",
+      "csv_values_preserved": true
+    },
+    "notebook_scopes": 4,
+    "notebook_display": "Headless display capture; IPython rendering not exercised.",
+    "import_cleanup": {
+      "files": [
+        "src/market_data.py",
+        "src/pricing.py"
+      ],
+      "function_and_class_asts_unchanged": true
+    },
+    "numerical_calculations_changed": false,
+    "profiling_command": {
+      "status": "passed",
+      "scope": "One cached artificial expiry with reduced test settings; no production-SPX runtime estimate."
+    },
+    "unit_tests": {
+      "count": 262,
+      "status": "passed"
+    }
+  }
+}

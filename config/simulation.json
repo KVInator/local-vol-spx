@@ -1,0 +1,17 @@
+{
+  "paths": 20000,
+  "seed": 20261008,
+  "spot": 100.0,
+  "rate": 0.05,
+  "sigma": 0.2,
+  "maturity_days": 60,
+  "strike_ratios": [0.95, 1.0, 1.05],
+  "frequencies": [4, 8, 16, 32, 64, 128, 256],
+  "pde_intervals": 1600,
+  "pde_half_width": 1.0,
+  "pde_steps_per_day": 32,
+  "hedge_fee_bps": 1.0,
+  "misspecified_iv_factor": 1.25,
+  "bootstrap_replicates": 200,
+  "representative_paths": 3
+}
