@@ -36,6 +36,56 @@ independent convergence of every historical delta and gamma. A wider
 representative sample remains useful, particularly for short maturities and
 states with large recovered local-volatility values.
 
+### June 19, 2015 Short-Expiry Checks
+
+The supplied June AH specification reproduces all 597 saved fitted prices to
+within 5.1e-12 index points. Its largest seven-day coefficient was then checked
+at strike 2,325. These checks keep the calibration parameters fixed; they do
+not recalibrate on each grid.
+
+| AH grid intervals | Recovered local volatility at strike 2,325 |
+| --- | ---: |
+| 4,000 | 288.6156% |
+| 8,000, saved model | 289.2353% |
+| 16,000 | 289.2572% |
+| 32,000 | 289.2683% |
+
+The peak persists under spatial refinement. The 32,000-interval reconstruction
+changes the saved prices by at most 0.000411 points, with two prices still outside
+their original bands. Direct nodal recovery and the logarithmic positive solver
+agree to within 2.5e-12 relative variance on the first-expiry quoted domain.
+
+At that strike, the coefficient changes from 289.24% immediately before the
+seven-day pillar to 19.78% immediately after it. Prices are continuous there,
+but the time derivative changes between maturity intervals. The quote at this
+edge has no positive midpoint IV: the parity-converted call midpoint is below
+zero, while its bid-ask band includes nonnegative prices. That leaves the small
+wing time value weakly determined by the quote. It does not by itself explain
+the whole peak or justify removing the observation.
+
+The backward PDE check covers four seven-day calls: strikes at forward
+log-moneyness -0.02, 0 and +0.02, and strike 2,325. It uses the saved 8,000-interval
+AH model throughout. The existing validation cases compare 12,000 and 24,000
+PDE intervals, 64 and 128 nominal steps per day, a half-cell shift, and log-domain
+half-widths 0.75 and 0.90. Both the raw coefficient and the existing 0.0005
+short-end blend are checked. Spot profiles span -1% to +1% in log spot.
+
+Gamma sensitivity prompted one further 48,000-interval check at 128 nominal
+steps per day, with and without a half-cell shift. For the blended coefficient,
+the maximum changes at the original spot across the four contracts are:
+
+| Comparison | Price change, points | Absolute delta change | Absolute gamma change |
+| --- | ---: | ---: | ---: |
+| 24,000 to 48,000 PDE intervals | 0.000139 | 0.00000336 | 0.000177 |
+| Half-cell shift at 48,000 intervals | 0.0000575 | 0.00000111 | 0.000289 |
+
+Prices and deltas move little in this sample. Gamma differences shrink with
+refinement, but remain sensitive to grid position, bump width and the short-end
+blend. The sampled profiles had no negative gamma or delta-bound violations.
+This is evidence for selected short-expiry calculations, not independent
+validation of all historical Greeks. Calibration uncertainty and AH
+calibration-bump/PDE-vega sensitivities remain separate work.
+
 ## Constrained Total-Variance Checks
 
 The SSVI comparison has been checked against flat Black prices and a known

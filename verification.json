@@ -54,7 +54,7 @@
     "verification_stage": "Original clean snapshot, before the constrained SSVI addition; these controlled history comparisons were not repeated for the addition."
   },
   "notebook": {
-    "code_cells_executed_per_scope": 10,
+    "code_cells_executed_per_scope": 15,
     "status": "passed",
     "inputs": "Artificial saved controls with complete summaries, earlier prefix summaries, an active partial run and missing output folders; indexed monthly pilot and strategy controls.",
     "scopes_checked": 4,
@@ -168,7 +168,7 @@
       "Producer CSV changed after the recorded output checksum"
     ],
     "figure_check": "Monthly contribution/distribution and populated empirical coefficient figures rendered with Matplotlib Agg and visually inspected.",
-    "display_check": "Headless display capture; interactive Jupyter/IPython rendering and the user’s actual Mac output paths were not exercised.",
+    "display_check": "Headless display capture; interactive Jupyter/IPython rendering and the user\u2019s actual Mac output paths were not exercised.",
     "source_hashes_unchanged": 18,
     "historical_calculations_changed": false,
     "unit_tests_rerun": false
@@ -275,5 +275,224 @@
     "plots": "Three-date quote-fit plots generated with Matplotlib Agg; 1 and 29 September figures visually inspected.",
     "notebook_numerical_calculations_changed": false,
     "original_running_repository_changed": false
+  },
+  "volatility_comparison_notebook_update": {
+    "date": "2026-10-09",
+    "files": [
+      "notebooks/research.ipynb",
+      "verification.json"
+    ],
+    "notebook_cells": 24,
+    "code_cells": 14,
+    "scope": "Saved AH/SSVI implied-volatility smiles, IV differences in percentage points, original price-band fit by expiry and left-hand recovered local-volatility slices.",
+    "figures": "Three figures; no heatmaps. Consistent AH/SSVI colors, uncapped local volatility on a common logarithmic scale and optional PNG export.",
+    "quote_policy": "All quotes enter the original half-spread price-error summaries. Invalid midpoint IVs are omitted only from IV plots, with counts reported. AH smile lines connect saved fitted-price IVs at quoted strikes.",
+    "pin_policy": "Validation output checksums are checked. The optional AH model is loaded from a study with matching frozen quote and carry input digests; immutable files are checked while the live index may advance.",
+    "market_check": {
+      "date": "2015-06-19",
+      "quotes": 597,
+      "expiries": 8,
+      "midpoints_without_positive_iv": 31,
+      "ah_outside_bands": 2,
+      "ssvi_outside_bands": 329,
+      "ssvi_quote_residuals_sha256": "ba9aa5eb786c9fb6c8666f956906b6594c7f586cc674946215eb419833114831",
+      "ssvi_surface_sha256": "b0af17c73d915c53420753ca6e112200db10d01cb81e3e742677b2ac80eac60a",
+      "scope": "Supplied market residual CSV and exact saved SSVI specification. The June AH model file was unavailable here; its local-volatility plot awaits execution on the user machine."
+    },
+    "controlled_local_volatility_check": "Saved artificial AH study and its SSVI validation; all four new code cells executed and all three figures rendered.",
+    "checks": [
+      "All 14 code cells executed across complete, earlier-prefix, active partial and missing-output historical controls",
+      "Missing SSVI validation folder handled without starting a fit",
+      "Changed producer CSV rejected",
+      "Mismatched validation date rejected",
+      "Market smile and quote-fit figures and controlled local-volatility figure visually inspected"
+    ],
+    "display_check": "Matplotlib Agg rendering and headless display capture; interactive Jupyter rendering was not exercised.",
+    "existing_cells_unchanged": 18,
+    "source_hashes_unchanged": 18,
+    "unit_tests_rerun": false,
+    "distributed_outputs": "None",
+    "historical_calculations_changed": false,
+    "original_running_repository_changed": false
+  },
+  "comparison_3d_notebook_update": {
+    "date": "2026-10-09",
+    "files": [
+      "notebooks/research.ipynb",
+      "verification.json"
+    ],
+    "notebook_cells": 26,
+    "code_cells": 15,
+    "scope": "Same-date six-panel 3D comparison: quote-PCHIP IV, AH price-implied IV, SSVI IV, quote-PCHIP Dupire local volatility, recovered AH local volatility and SSVI Dupire local volatility.",
+    "grid_policy": "Shared normalized-strike and maturity grids. Strike range is the union of quoted ranges within the AH interior domain. Pillars and nearby times are included; exact pillars use left-hand time derivatives.",
+    "rendering_policy": "Shared height limits within each row. Local-volatility height is logarithmic by default, with percentage ticks; optional linear mode. Only cells with four available corners are rendered. Invalid states stay missing and positive extremes remain uncapped.",
+    "axis_update": "Reduce crowded local-volatility tick labels; shared 3D row units and explicit layout inspected after rendering.",
+    "checks": [
+      "All 15 code cells executed across four saved-history scopes",
+      "Supplied June market residuals and SSVI specification checked; quote and SSVI 3D panels rendered",
+      "All six panels executed with a saved artificial AH/SSVI control",
+      "Missing validation folder handled",
+      "Changed producer CSV and mismatched date rejected",
+      "Linear and logarithmic height modes preserve identical uncapped volatility values"
+    ],
+    "visual_check": "Rendered market and controlled 3D figures and local-volatility axis formatting inspected with Matplotlib Agg.",
+    "market_ah_scope": "The actual June AH model file remains on the user machine; market AH 3D values were not reproduced in this environment. Its selected-slice output was reviewed from the supplied screenshots and table.",
+    "input_unchanged": true,
+    "numerical_source_hashes_unchanged": 18,
+    "original_18_notebook_cells_unchanged": true,
+    "historical_calculations_changed": false,
+    "original_running_repository_changed": false,
+    "unit_tests_rerun": false,
+    "distributed_outputs": "None"
+  },
+  "june_surface_review": {
+    "date": "2015-06-19",
+    "root": "UNKNOWN",
+    "input_files": {
+      "upload/Pasted markdown(20261009-091747).md": "be336719d638b12dc7db7186e9aeb51e1681d8e8ec70d41bf0e0ad896997cb3f",
+      "upload/Pasted text(20261009-075556).txt": "ba9aa5eb786c9fb6c8666f956906b6594c7f586cc674946215eb419833114831",
+      "repo_cleanup/vol_notebook_checks/received_ah/june_ah_surface.json": "2c164732403b978312c16449e68054ff4f5b69077b401cef41cd87ebfaa6da3e"
+    },
+    "ah_specification_input": "JSON reconstructed from the HTML-escaped supplied markdown; fitted-price agreement verifies the reconstruction against the supplied residual table.",
+    "saved_price_reproduction_max_points": 5.030642569181509e-12,
+    "frozen_parameter_ah_grid_refinement": [
+      {
+        "intervals": 4000,
+        "first_expiry_edge_local_vol_pct": 288.6156298224467,
+        "rms_half_spreads": 0.253473749460647,
+        "max_price_change_from_saved_grid": 0.0013169795993319688,
+        "outside_bands": 2
+      },
+      {
+        "intervals": 8000,
+        "first_expiry_edge_local_vol_pct": 289.2353364790998,
+        "rms_half_spreads": 0.2536245019370782,
+        "max_price_change_from_saved_grid": 0.0,
+        "outside_bands": 2
+      },
+      {
+        "intervals": 16000,
+        "first_expiry_edge_local_vol_pct": 289.25715557931306,
+        "rms_half_spreads": 0.25365411729458975,
+        "max_price_change_from_saved_grid": 0.00035814341251638737,
+        "outside_bands": 2
+      },
+      {
+        "intervals": 32000,
+        "first_expiry_edge_local_vol_pct": 289.26832797993285,
+        "rms_half_spreads": 0.25366252649539445,
+        "max_price_change_from_saved_grid": 0.00041040447091456045,
+        "outside_bands": 2
+      }
+    ],
+    "native_logarithmic_recovery_relative_difference_max": 2.471245430513136e-12,
+    "first_pillar": {
+      "days": 6.999999999999991,
+      "strike": 2325.0,
+      "kf": 1.1021503885471338,
+      "left": {
+        "local_vol_pct": 289.2353364790998,
+        "native_log_recovery_relative_difference": 2.4715784974205235e-12,
+        "density": 0.0008472504121918508,
+        "ct": 0.004304930586610991,
+        "proxy_vol_pct": 152.70036354962798
+      },
+      "right": {
+        "local_vol_pct": 19.77848062958963,
+        "native_log_recovery_relative_difference": 2.220446049250313e-16,
+        "density": 0.0008472504121918508,
+        "ct": 2.01302577751381e-05,
+        "proxy_vol_pct": 19.778480629589627
+      },
+      "edge_quote": {
+        "strike": 2325.0,
+        "source_kind": "put",
+        "source_bid": 209.7,
+        "source_ask": 218.01,
+        "call_mid": -1.4259866958750536,
+        "model_call_price": 0.0484969507166176,
+        "observed_iv": null,
+        "iv_status": "at_or_below_intrinsic",
+        "residual_half_spreads": 0.3548697103710399,
+        "outside_original_band": false
+      }
+    },
+    "plot_grid": [
+      69,
+      155
+    ],
+    "quote_based_dupire_exclusions": {
+      "Unsupported": 2293,
+      "Negative time derivative": 10,
+      "Density denominator failure": 2596
+    },
+    "plot_boundary_note": "A few exact boundary-state support counts differ from the supplied Mac table; extrema and overall availability agree. Support tests use finite interpolation domains.",
+    "selected_pde": {
+      "days": 7,
+      "kind": "call",
+      "strikes": [
+        2067.741334685149,
+        2109.512480474502,
+        2152.127459383252,
+        2325.0
+      ],
+      "spot_log_change_range": [
+        -0.01,
+        0.01
+      ],
+      "spot_profile_points_per_contract": 401,
+      "radii": [
+        0,
+        0.0005
+      ],
+      "base_model_intervals": 8000,
+      "pde_intervals": [
+        12000,
+        24000,
+        48000
+      ],
+      "nominal_steps_per_day": [
+        64,
+        128
+      ],
+      "cases": [
+        "space_coarse",
+        "space_fine",
+        "time_fine",
+        "half_cell_shift",
+        "domain_wide"
+      ],
+      "further_cases": [
+        "space_finer",
+        "shift_finer"
+      ],
+      "further_radius": 0.0005,
+      "original_spot_maximum_changes_blended": {
+        "24k_to_48k": {
+          "price": 0.0001385679463155043,
+          "delta": 3.3560342835858847e-06,
+          "gamma": 0.00017672567420290441
+        },
+        "48k_half_cell_shift": {
+          "price": 5.748184875642437e-05,
+          "delta": 1.108116595816e-06,
+          "gamma": 0.0002888725396046968
+        }
+      },
+      "negative_gamma_profile_samples": 0,
+      "delta_bound_violation_profile_samples": 0,
+      "scope": "Four seven-day contracts only; frozen fitted model. No calibration-bump, vega, historical hedging rerun or all-history Greek validation."
+    },
+    "changed_existing_files": [
+      "docs/results.md",
+      "docs/validation.md",
+      "notebooks/research.ipynb",
+      "verification.json"
+    ],
+    "notebook_code_cells_unchanged": true,
+    "source_modules_unchanged": true,
+    "original_historical_run_modified": false,
+    "unit_suite_rerun": false,
+    "reason_no_unit_rerun": "Documentation and notebook markdown only; existing numerical routines were executed for the targeted checks."
   }
 }

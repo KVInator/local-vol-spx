@@ -78,14 +78,50 @@ inputs on three dates:
 
 All three optimizers converged, and the sampled surfaces passed the calendar,
 density and price-shape checks. Every checked source quote entered calibration;
-prices were not clipped into their bands. The large residuals show the limit of
-this fixed-shape SSVI family. Eliminating arbitrage has not made the fit accurate
-enough to replace the AH hedge model.
+prices were not clipped into their bands. The large residuals show that these
+calibrated SSVI surfaces do not describe the quotes adequately. Optimizer
+convergence does not establish that a global minimum was found. The current
+fits are not accurate enough to replace the AH hedge model.
 
 This completes a constrained construction, with quote adequacy and PDE hedge
 validation still outstanding. The comparison has not changed the frozen
 historical calculation. Its formulas and scope are described in
 [Methods](methods.md) and [Validation](validation.md).
+
+### June 19, 2015 Comparison
+
+The notebook now compares AH and SSVI on the same 597 quotes across eight
+expiries. Price residuals include all quotes, including the 31 midpoints that
+do not have a positive implied volatility.
+
+| Model | RMS original half-spreads | Outside original bands |
+| --- | ---: | ---: |
+| AH | 0.2536 | 2 of 597 |
+| SSVI | 1.6935 | 329 of 597 |
+
+AH reproduces these prices more closely. SSVI produces a smoother local-volatility
+surface, but that smoothness comes with a substantially worse quote fit in this
+comparison. Neither observation establishes which hedge will perform better.
+
+The six-panel figure also shows why recovering local volatility from a quote
+interpolation needs care. Quote-based Dupire values are available at about 54%
+of its 10,695 plotting states and reach 2,397.58%. The largest value comes from
+a small positive density denominator. Availability means the calculation passed
+its support and sign checks; it does not certify derivative stability. Gaps
+remain where those checks fail.
+
+Recovered AH local volatility ranges from 5.80% to 289.54% on the same grid,
+while SSVI ranges from 7.14% to 43.64%. The large AH value occurs in the
+seven-day high-strike wing. At strike 2,325, within that expiry's quoted range,
+it is 289.24%. This coefficient persists when the AH grid is refined with its
+fitted parameters fixed. It is a property of this fitted model, rather than a
+plotting error or a forecast of SPX volatility.
+
+Selected seven-day PDE checks found small price and delta changes under further
+refinement. Gamma remains more sensitive to grid position and the short-end
+blend. [Validation](validation.md) records the contracts, settings and limits of
+these checks. The June comparison is separate from the latest historical date
+displayed elsewhere in the notebook.
 
 ## Controlled Simulation
 
