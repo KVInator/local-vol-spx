@@ -1,9 +1,11 @@
 """Synchronized, read-only notebook views of a saved daily model."""
 from __future__ import annotations
+from bisect import bisect_left, bisect_right
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import date as calendar_date
 from html import escape
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -43,16 +45,39 @@ class SurfaceExplorer:
         if not saved.dates or type(cache_size) is not int or cache_size < 1:
             raise ValueError("Require saved dates and a positive cache size.")
         self.saved = saved
-        self.validation = [SavedValidationResults(p) for p in validation_folders]
+        self.validation = []
+        self.evidence_availability = []
         freeze_pin = sha256(saved.folder / "freeze.json")
-        for result in self.validation:
+        for folder in validation_folders:
+            folder = Path(folder).resolve()
+            if not folder.exists():
+                self.evidence_availability.append(
+                    dict(
+                        producer=folder.name,
+                        recorded_date="unknown",
+                        status="unavailable_missing_folder",
+                        reason=f"Optional evidence folder is absent: {folder}",
+                    )
+                )
+                continue
+            result = SavedValidationResults(folder)
             if freeze_pin not in result.audit.get("input_sha256", {}).values():
                 raise ValueError(
                     f"Validation does not pin this study freeze: {result.folder}"
                 )
+            self.validation.append(result)
+            self.evidence_availability.append(
+                dict(
+                    producer=folder.name,
+                    recorded_date=result.audit.get("date", "row-level scope"),
+                    status="available",
+                    reason="Producer pins checked on consumption",
+                )
+            )
         self.cache_size = cache_size
         self.cache = OrderedDict()
         self.current = None
+        self.requested_date: str | None = None
         self.figures = []
         self._updating = False
         self.widget = None
@@ -62,6 +87,7 @@ class SurfaceExplorer:
     ) -> DailyView:
         """A failed selection clears current state before any cache read."""
         self.current = None
+        self.requested_date = date
         if date not in self.saved.dates:
             raise KeyError(f"No saved date: {date}")
         radius = self.saved.freeze["identity"]["config"]["settings"]["panel"]["radius"]
@@ -85,6 +111,10 @@ class SurfaceExplorer:
             "decisions": day.dated_table(date, "decisions"),
         }
         tables = {n: f.loc[f.root.eq(root)].copy() for n, f in tables.items()}
+        tables["evidence_availability"] = pd.DataFrame(
+            self.evidence_availability,
+            columns=["producer", "recorded_date", "status", "reason"],
+        )
         manifest = tables["manifest"]
         fitted = manifest.loc[manifest.status.eq("fitted")]
         status, message, samples, ssvi = "ready", "", pd.DataFrame(), None
@@ -305,6 +335,7 @@ class SurfaceExplorer:
         initial_date = initial_date or (
             "2015-06-19" if "2015-06-19" in dates else dates[0]
         )
+        self.requested_date = initial_date
         self.slider = widgets.SelectionSlider(
             options=dates,
             value=initial_date,
@@ -351,32 +382,42 @@ class SurfaceExplorer:
         return self.widget
 
     def _step(self, amount):
-        index = self.saved.dates.index(self.slider.value) + amount
+        if self.requested_date is None:
+            index = 0 if amount > 0 else len(self.saved.dates) - 1
+        else:
+            index = (
+                bisect_right(self.saved.dates, self.requested_date)
+                if amount > 0
+                else bisect_left(self.saved.dates, self.requested_date) - 1
+            )
         if 0 <= index < len(self.saved.dates):
-            self.slider.value = self.saved.dates[index]
+            self._request_date(self.saved.dates[index])
+
+    def _request_date(self, value: str | None):
+        """Synchronize controls to the requested date, including unavailable dates."""
+        self.requested_date = value
+        self._updating = True
+        values = sorted(
+            set(self.saved.dates) | ({value} if value is not None else set())
+        )
+        options = [(date, date) for date in values]
+        if value is None:
+            options.insert(0, ("No date selected", None))
+        self.slider.options = options
+        self.slider.value = value
+        self.picker.value = calendar_date.fromisoformat(value) if value else None
+        self._updating = False
+        self._refresh()
 
     def _picker_changed(self, change):
-        if self._updating or change["new"] is None:
+        if self._updating:
             return
-        value = change["new"].isoformat()
-        if value in self.saved.dates:
-            if value == self.slider.value:
-                self._refresh()
-            else:
-                self.slider.value = value
-        else:
-            self.current = None
-            self.close_figures()
-            self.output.outputs = ()
-            self.status.value = f"<b>{escape(value)}: no saved decisions.</b>"
+        self._request_date(change["new"].isoformat() if change["new"] else None)
 
     def _date_changed(self, change):
         if self._updating:
             return
-        self._updating = True
-        self.picker.value = calendar_date.fromisoformat(change["new"])
-        self._updating = False
-        self._refresh()
+        self._request_date(change["new"])
 
     def _render_changed(self, change):
         if not self._updating and self.current is not None:
@@ -387,20 +428,36 @@ class SurfaceExplorer:
             return
         self.close_figures()
         self.output.outputs = ()
-        self.status.value = f"Loading {escape(self.slider.value)}…"
+        requested = self.requested_date
+        if requested not in self.saved.dates:
+            self.current = None
+            self._updating = True
+            self.maturity.options = []
+            self._updating = False
+            self.previous.disabled = (
+                requested is not None and requested <= self.saved.dates[0]
+            )
+            self.next.disabled = (
+                requested is not None and requested >= self.saved.dates[-1]
+            )
+            self.status.value = (
+                f"<b>{escape(requested)}: no saved decisions.</b>"
+                if requested
+                else "<b>Select a saved date.</b>"
+            )
+            return
+        self.status.value = f"Loading {escape(requested)}…"
         try:
             self._updating = True
             roots = sorted(
-                self.saved.dated_table(
-                    self.slider.value, "model_manifest"
-                ).root.unique()
+                self.saved.dated_table(requested, "model_manifest").root.unique()
             )
             previous_root = self.root.value
             self.root.options = roots or ["UNKNOWN"]
             if previous_root in self.root.options:
                 self.root.value = previous_root
             self._updating = False
-            view = self.select(self.slider.value, self.root.value, self.domain.value)
+            view = self.select(requested, self.root.value, self.domain.value)
             self._updating = True
             options = [
                 (f"{r.expire_date} ({365 * r.maturity_years:.1f}d)", r.expire_date)
@@ -417,8 +474,8 @@ class SurfaceExplorer:
                         key=lambda r: abs(365 * r.maturity_years - 35),
                     ).expire_date
                 )
-            self.previous.disabled = self.slider.value == self.saved.dates[0]
-            self.next.disabled = self.slider.value == self.saved.dates[-1]
+            self.previous.disabled = requested == self.saved.dates[0]
+            self.next.disabled = requested == self.saved.dates[-1]
             self._updating = False
             self.render()
         except (OSError, ValueError, KeyError) as error:
@@ -426,7 +483,9 @@ class SurfaceExplorer:
             self.current = None
             self.close_figures()
             self.output.outputs = ()
-            self.status.value = f"<b>{escape(self.slider.value)}: unavailable — {escape(str(error))}</b>"
+            self.status.value = (
+                f"<b>{escape(requested)}: unavailable — {escape(str(error))}</b>"
+            )
 
     def _show(self, *objects):
         """Append explicitly owned output without frontend capture/reply traffic."""
@@ -454,7 +513,7 @@ class SurfaceExplorer:
                     # Manual display belongs to the widget; inline auto-display
                     # would create stale figures outside its clearable output.
                     plt.close(figure)
-            for name in ("manifest", "expiry_fit", "carry"):
+            for name in ("manifest", "expiry_fit", "carry", "evidence_availability"):
                 if name in view.tables:
                     self._show(
                         Markdown(f'**{view.date}: {name.replace("_", " ")}**'),

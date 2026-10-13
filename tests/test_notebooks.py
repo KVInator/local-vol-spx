@@ -129,6 +129,85 @@ class NotebookControls(unittest.TestCase):
     def tearDown(self):
         plt.close("all")
 
+    def test_unavailable_request_survives_display_changes_and_recovers_explicitly(self):
+        explorer = SurfaceExplorer(StudyResults(self.study.output))
+        explorer.build_widget(self.dates[0])
+        with patch.object(explorer, "render"):
+            explorer._refresh()
+            explorer.picker.value = date(1900, 1, 1)
+            for change in (
+                lambda: setattr(explorer.domain, "value", 0.04),
+                lambda: setattr(explorer.scale, "value", "log"),
+                lambda: explorer._refresh(),
+                lambda: explorer._render_changed({"new": None}),
+            ):
+                change()
+                self.assertEqual(explorer.requested_date, "1900-01-01")
+                self.assertEqual(explorer.slider.value, "1900-01-01")
+                self.assertEqual(explorer.picker.value, date(1900, 1, 1))
+                self.assertIsNone(explorer.current)
+                self.assertFalse(explorer.output.outputs)
+            explorer._updating = True
+            explorer.root.options = ["UNKNOWN", "OTHER"]
+            explorer._updating = False
+            explorer.root.value = "OTHER"
+            self.assertIsNone(explorer.current)
+            self.assertIn("1900-01-01", explorer.status.value)
+            explorer.picker.value = date.fromisoformat(self.dates[0])
+            self.assertEqual(explorer.current.date, self.dates[0])
+            explorer.picker.value = date(1900, 1, 1)
+            explorer.slider.value = self.dates[1]
+            self.assertEqual(explorer.current.date, self.dates[1])
+            self.assertEqual(explorer.picker.value.isoformat(), self.dates[1])
+            explorer.picker.value = date(1900, 1, 1)
+            explorer.next.click()
+            self.assertEqual(explorer.current.date, self.dates[0])
+
+    def test_missing_optional_folders_do_not_block_required_study(self):
+        with tempfile.TemporaryDirectory() as directory:
+            missing = Path(directory) / "missing_greek_panel"
+            explorer = SurfaceExplorer(StudyResults(self.study.output), [missing])
+            view = explorer.select(self.dates[0])
+            self.assertEqual(view.status, "ready")
+            self.assertIsNone(view.ssvi)
+            self.assertEqual(
+                view.tables["evidence_availability"].status.tolist(),
+                ["unavailable_missing_folder"],
+            )
+
+    def test_present_optional_producers_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            saved = StudyResults(self.study.output)
+            with self.assertRaises(FileNotFoundError):
+                SurfaceExplorer(saved, [folder])
+            (folder / "audit.json").write_text("{malformed")
+            with self.assertRaises(json.JSONDecodeError):
+                SurfaceExplorer(saved, [folder])
+            atomic_json(
+                folder / "audit.json", dict(input_sha256={"freeze.json": "wrong"})
+            )
+            with self.assertRaisesRegex(ValueError, "does not pin"):
+                SurfaceExplorer(saved, [folder])
+            panel = folder / "greek_refinement.csv"
+            pd.DataFrame(
+                dict(quote_date=[self.dates[0]], root=["UNKNOWN"], delta_change=[0.0])
+            ).to_csv(panel, index=False)
+            atomic_json(
+                folder / "audit.json",
+                dict(
+                    date=self.dates[0],
+                    root="UNKNOWN",
+                    input_sha256={"freeze.json": sha256(saved.folder / "freeze.json")},
+                    output_sha256={panel.name: sha256(panel)},
+                ),
+            )
+            explorer = SurfaceExplorer(saved, [folder])
+            with panel.open("a") as stream:
+                stream.write("\n")
+            with self.assertRaisesRegex(ValueError, "Checksum"):
+                explorer.select(self.dates[0])
+
     def test_widget_date_changes_are_synchronized_without_numerical_jobs(self):
         explorer = SurfaceExplorer(StudyResults(self.study.output), cache_size=2)
         explorer.build_widget(self.dates[0])
