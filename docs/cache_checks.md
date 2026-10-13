@@ -52,12 +52,14 @@ attribute entire multi-session errors to an entry-grid defect.
 
 [The scenario table](tables/tail_ledger_summary.csv) retains contract identity,
 entry delta differences, observed option-mark P&L, funding, costs, replay errors
-and paired daily SSE/counts. `scratch/runs/cache_review/tail_intervals.csv`
+and paired daily SSE/counts for each row’s execution scenario.
+`selection_scenario=mid` identifies the midpoint-based contract selection;
+spread and fee rows use their own cached paired daily totals. `scratch/runs/publication_cache_review/tail_intervals.csv`
 records individual decisions and spot/mark changes; `tail_coverage.csv` records
 completed and excluded paths for all methods at these entry dates. Observed
 marks, exclusions and funding are kept separate from numerical entry-date
 refinements described in [validation](validation.md).
 
-The curated tables derive from `scratch/runs/cache_review/audit.json` and its
+The curated tables derive from `scratch/runs/publication_cache_review/audit.json` and its
 output pins. [Reproducibility](reproducibility.md) provides the read-only replay
 command. Producer files and frozen historical outcomes remain unchanged.

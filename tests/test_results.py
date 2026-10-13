@@ -44,6 +44,42 @@ class ResultsTests(unittest.TestCase):
             ).all()
         )
 
+    def test_tail_daily_statistics_match_each_execution_scenario(self):
+        saved = StudyResults(self.study.output)
+        date = self.dates[0]
+        summary = saved.replay_tail_paths([date], strategies=("ah_pde",))[
+            "tail_ledger_summary"
+        ]
+        trials = saved.outcomes(date)
+        for row in summary.itertuples():
+            scope = trials.loc[
+                trials.holding_sessions.eq(5)
+                & trials.rebalance_sessions.eq(1)
+                & trials.scenario.eq(row.scenario)
+            ]
+            black = scope.loc[scope.strategy.eq("black"), ["entry_id", "net_pnl"]]
+            paired = scope.loc[
+                scope.strategy.eq("ah_pde"), ["entry_id", "net_pnl"]
+            ].merge(
+                black, on="entry_id", suffixes=("", "_black"), validate="one_to_one"
+            )
+            self.assertEqual(row.date_comparisons, len(paired))
+            self.assertAlmostEqual(
+                row.date_candidate_sse,
+                float(np.square(paired.net_pnl).sum()),
+                places=10,
+            )
+            self.assertAlmostEqual(
+                row.date_black_sse,
+                float(np.square(paired.net_pnl_black).sum()),
+                places=10,
+            )
+            self.assertEqual(row.selection_scenario, "mid")
+        self.assertEqual(summary.entry_id.nunique(), 1)
+        self.assertGreater(
+            summary.date_candidate_sse.max() - summary.date_candidate_sse.min(), 1e-6
+        )
+
     def test_changed_output_is_rejected(self):
         path = self.study.output / "summary" / "coverage_summary.csv"
         original = path.read_bytes()

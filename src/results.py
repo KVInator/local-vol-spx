@@ -335,12 +335,24 @@ class StudyResults(PinnedInputs):
                 for scenario in scenarios:
                     c, ce = method_results[(strategy, scenario)]
                     b, be = method_results[("black", scenario)]
+                    scenario_trials = trials.loc[
+                        trials.holding_sessions.eq(holding)
+                        & trials.rebalance_sessions.eq(rebalance)
+                        & trials.scenario.eq(scenario)
+                    ]
+                    scenario_black = scenario_trials.loc[
+                        scenario_trials.strategy.eq("black"), ["entry_id", "net_pnl"]
+                    ].rename(columns={"net_pnl": "black_net_pnl"})
+                    daily_pairs = scenario_trials.loc[
+                        scenario_trials.strategy.eq(strategy)
+                    ].merge(scenario_black, on="entry_id", validate="one_to_one")
                     rows.append(
                         dict(
                             quote_date=date,
                             entry_id=chosen.entry_id,
                             strategy=strategy,
                             scenario=scenario,
+                            selection_scenario="mid",
                             expire_date=chosen.expire_date,
                             strike=chosen.strike,
                             kind=chosen.kind,
@@ -364,9 +376,9 @@ class StudyResults(PinnedInputs):
                         )
                     )
                     rows[-1].update(
-                        date_comparisons=len(paired),
-                        date_candidate_sse=float((paired.net_pnl**2).sum()),
-                        date_black_sse=float((paired.black_net_pnl**2).sum()),
+                        date_comparisons=len(daily_pairs),
+                        date_candidate_sse=float((daily_pairs.net_pnl**2).sum()),
+                        date_black_sse=float((daily_pairs.black_net_pnl**2).sum()),
                     )
         return {
             "tail_ledger_summary": pd.DataFrame(rows),

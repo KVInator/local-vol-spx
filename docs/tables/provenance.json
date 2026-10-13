@@ -8,24 +8,17 @@
     "scratch/runs/full_2013_2023_v1/summary/common_strategy_gain.csv": "08996f9d8c43cf438586246f02d115033de528a2d9b4a3b1c6d4bc172cfc4a3a",
     "scratch/runs/full_2013_2023_v1/summary/coverage_summary.csv": "fdae35441bd174139c8793c26d8e7090a7f96794600d37ff2d18640e9808b076"
   },
-  "cache_review_audit_sha256": "9347f780f3cf9685198a88ae349f6a2e8e3d0a6ddb276940bfd9d855753eadad",
+  "cache_review_audit_sha256": "f66f3467d3142a2d0420a33679cebb804d2eccb70760560ba771756d99164d6e",
   "output_sha256": {
-    "docs/tables/tail_ledger_summary.csv": "2915c45db3a6c7f26d1869fd533c43e952f1ae0463e5b5642dfa1d8fff2919d2",
+    "docs/tables/tail_ledger_summary.csv": "c6bd95cd45315b32b5f3ca654ad59645b0e224b8295a709c8c94d858d47f7282",
     "docs/tables/carry_exclusions.csv": "bc28beb61310bbd846545a3f91b28f9f76e1783510c1f695b4cc72b87277a190",
     "docs/results.md": "81bde74ccb7bf1bb8f8cbb6669e77a683aa91180981a8d1119a8805db58b5514",
-    "docs/cache_checks.md": "a61cf206a697777b2f04a702581bd2746fba5036c6af608df2940095e04c0dfa",
+    "docs/cache_checks.md": "c55fae3ae48d4337ee9489cba2ce3bcfb99850832c2bce076b73ff30fe4e5708",
     "docs/validation.md": "46b02e5838ec2b3a95601836f8da01f2f411f1b81d184fe9e56f879cd8f8a9d9"
   },
   "verification": {
-    "unit_tests": 290,
-    "elapsed_seconds": 59.05,
-    "kernel_evidence": "scratch/notebook_checks",
-    "hygiene_errors": 0,
-    "hygiene_review_items": "Two curated deliverable notebooks",
-    "rendered_widget_pngs": {
-      "surface_explorer": 2,
-      "historical_analysis": 1
-    }
+    "result_regression_tests": 7,
+    "scope": "Scenario-specific paired daily SSE and midpoint-selected scalar ledgers"
   },
   "source_sha256": {
     "src/artifacts.py": "ac208833abd01e690504788513aff7407e609b5865981d6856730439e2aa2738",
@@ -33,7 +26,7 @@
     "src/carry.py": "362d6f73a0d301e1dbac74c41340298f0a7182084c0f93daf43ac4bd3b7e06ea",
     "src/data_audit.py": "0069e6bded9e78bdf9e3ddb57d22d822ea37ddb11a8144d19cc4b606ae4441fb",
     "src/diagnostics.py": "d98b3f4606348fc386a11a869db2cdeb5157552545e2b21202212191d47c1006",
-    "src/explorer.py": "b72498b7f3b7f201d619d43bc72cdd52a7e9be6b104aee7876376135a82cbcba",
+    "src/explorer.py": "382259be89c1b79fec75338d571a966e6d8b2339e34717564e024d1e0ce4bca3",
     "src/hedging.py": "c8d4c067d35ea74fa66624f21130b36249083ce72d06af291337bf1b4e5cd9f6",
     "src/history_analysis.py": "99baa533f3bb2198bc8717c345e415fa2e733cdd417a6c320249cc57fd82a250",
     "src/inference.py": "996a626b5f22448645f482fe1f2558471f471c0854259a6d47b1d343b0aa7110",
@@ -44,7 +37,7 @@
     "src/pde.py": "9543a0c58daff6ecd5ee5423e64e38b3f5198191cf28f0f38cab660e55f93777",
     "src/pricing.py": "6ff8842025c2e239ab8b723e0496742c3a2c9b7ac0308fc15d4986ea52e8e38b",
     "src/research_validation.py": "e9503eacbb42109cd144a76dee2393003d532af78bdce4ee327a7517fcecd8be",
-    "src/results.py": "446908d7481cf138f6c0582e56538258d4c36845aff63b8edd2fe467e5ffe772",
+    "src/results.py": "da32047373ca5aecaa423cc4646f9a73dc3285e5fad2b516edb6c2f85ec918f6",
     "src/selection.py": "1555dcec92f99dcccaa76edc7c4ee373d7dcb6695460edb831822c6b823ab110",
     "src/simulation.py": "1e7af88d5b34929a21cef3505a98e794ac681c77a9753e500f6398b74165e98a",
     "src/study.py": "3b91a0f7cfd390f61a01a7d34c449f626eb40e7977f166f05f61a14f4891c132",
@@ -61,18 +54,19 @@
     "tests/test_diagnostics.py": "dbe3561798f80af251a089ca1803bfd262bedc8f74071390328b48e515078e74",
     "tests/test_hedging.py": "f1ab087d8dfce69abb21d3c962a91b2bfb8d49ab9f5fcc786801733bf64cc8e7",
     "tests/test_market_data.py": "33924fcb824dd3ab0ce9300b288868e8ddd959c76c046843e963d976019a61ab",
-    "tests/test_notebooks.py": "df5277b26f068609493a2782bdf81e2d063263f0936834f51a55b5f2e0b11c33",
+    "tests/test_notebooks.py": "40f98c74242bfc4862f5ff4e507054111df96230a13ccac60bce1c4b56b5794b",
     "tests/test_pde.py": "3e915f62992c2b89b7378a34905ddf121923650904c296cbd9f682cbc2d49882",
     "tests/test_pricing.py": "d411fa4f43592c41877614f30ada8cff91c2cd38e2d29ab2df8be10de12728ce",
     "tests/test_research_validation.py": "c949297bb1ebd3de0dd696c48db0278270ae46ffbeed936fd721f2efc13a9e8b",
-    "tests/test_results.py": "ca7e06e5bf9fd0db3b70ab3fc96fceb3bd57ac2e7a11eb8375aa6ede043b55e4",
+    "tests/test_results.py": "92ef5777196a9310ea6d8bd7bda584e9fd19c20d4f2e1e70a07fc8de75aeb3d4",
     "tests/test_simulation.py": "c09bbf40d7c6d4da15947b5f9f22df125d82afe323aff6820c71bd4778f13bd2",
     "tests/test_study.py": "f9541ee146e99fdb88cb059ac8a620432881b023c5a669780a0098617974a8c8",
     "tests/test_surface.py": "7a067cd27ef7a628c644ed01665791fa37235f75cf5c3ef2ef9c10ccf7a0ac48",
-    "notebooks/historical_analysis.ipynb": "820c1639a3963cbcd0adf1319ce3c62632ae824a183ca91a3dabe5f3acbe46ec",
-    "notebooks/surface_explorer.ipynb": "5ea27241e531c9e4bed529536e14b4e83ca75e36c0f84cfb19cf22b758d56e64",
+    "notebooks/historical_analysis.ipynb": "64ffe3706c2a1476b9a9a4d3329df3639854725d549bff5f46051202bfff101e",
+    "notebooks/surface_explorer.ipynb": "13688bd0d4e2b61cf21b831cc77538707f987004f594816212ec38ab38377f40",
     "config/history_2013_2023.json": "d459af2d8e619ef2cc4822daa138b6e29c3606999990f3bfa6d2f5c7dea3cb4a",
     "config/notebooks.json": "57e1a8c261e77551a73fcbcd9f35e744a04f45d3f7fe549925c7f8401253e56b",
     "config/simulation.json": "47fd897a912213bb1a0a6caa956ab81ee664a4f533e4ee8240e4fbcb45304db6"
-  }
+  },
+  "cache_review_folder": "scratch/runs/publication_cache_review"
 }
