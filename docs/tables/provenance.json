@@ -31,12 +31,15 @@
     "retained_file_checks": "All original sizes and SHA-256 checksums unchanged; history not rerun",
     "pdf": {
       "pages": 19,
-      "selectable_characters": 39103,
+      "selectable_characters": 39247,
       "links": 36,
       "wide_text_blocks": [],
-      "page_visual_review": "All pages inspected; compatibility edit leaves other page pixels unchanged",
-      "compatibility_changed_pages": [
-        3
+      "page_visual_review": "Every page inspected; unaffected page pixels retained across final compatibility changes",
+      "final_changed_pages": [
+        3,
+        8,
+        10,
+        16
       ]
     },
     "fresh_public_checkout": {

@@ -44,8 +44,8 @@ With deterministic pricing rates and dividend yield, a local-volatility model
 represents the index under a risk-neutral measure as
 
 $$
-\frac{dS_t}{S_t}=[r(t)-q(t)]\,dt+
-\sigma_{\mathrm{LV}}(S_t,t)\,dW_t^{\mathbb Q}.
+\frac{dS_t}{S_t}=[r(t)-q(t)] dt+
+\sigma_{\mathrm{LV}}(S_t,t) dW_t^{\mathbb Q}.
 $$
 
 The coefficient is a deterministic function of the current index level and
@@ -76,7 +76,7 @@ years on an ACT/365F basis. Plots report volatility in percent and option prices
 in index points. The plotting coordinates are
 
 $$
-y=\log\!\left(\frac{K}{F(T)}\right),
+y=\log \left(\frac{K}{F(T)}\right),
 \qquad w(y,T)=\sigma_{\mathrm{imp}}(y,T)^2T.
 $$
 
@@ -167,11 +167,11 @@ controls. Its parameters minimize equivalent-call price residuals in original
 half-spread units, with a penalty on adjacent log-control differences:
 
 $$
-\min_{p_i}\;
+\min_{p_i}
 \sum_j\left[
 \frac{C_{\mathrm{model}}(K_j,T_i;p_i)-C_{\mathrm{mid},j}}
 {h_j}\right]^2
-+\lambda\|L p_i\|^2,
++\lambda\Vert L p_i\Vert ^2,
 \qquad h_j=\tfrac12(C_{\mathrm{ask},j}-C_{\mathrm{bid},j}).
 $$
 
@@ -267,7 +267,7 @@ For $k=K/F(T)$, the normalized terminal call payoff is $(x-k)^+$. Currency or
 index-point prices are restored with $A(t,T)=D(T)F(T)/D(t)$:
 
 $$
-V(S,t)=A(t,T)U\!\left(\log\frac{S}{F(t)},t\right),\qquad
+V(S,t)=A(t,T)U \left(\log\frac{S}{F(t)},t\right),\qquad
 \Delta_{\mathrm{AH}}=\frac{A U_y}{S},\qquad
 \Gamma_{\mathrm{AH}}=\frac{A(U_{yy}-U_y)}{S^2}.
 $$
@@ -283,7 +283,7 @@ spot at fixed $F/S$:
 
 $$
 \Delta_B=\frac{DF}{S}
-\big[\Phi(d_1)-\mathbf 1_{\{\mathrm{put}\}}\big],
+\big[\Phi(d_1)-\mathbf 1_{\lbrace \mathrm{put}\rbrace }\big],
 \qquad \mathcal V_B=DF\phi(d_1)\sqrt T.
 $$
 

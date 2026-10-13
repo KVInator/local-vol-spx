@@ -102,8 +102,8 @@ elapsed model time and $T$ expiry, in years. Prices and strikes use index points
 Let $r(t)$ and $q(t)$ be deterministic pricing rate and yield, with
 
 $$
-D(t)=\exp\!\left[-\int_0^t r(u)\,du\right],\qquad
-F(t)=S_0\exp\!\left[\int_0^t(r(u)-q(u))\,du\right].
+D(t)=\exp \left[-\int_0^t r(u) du\right],\qquad
+F(t)=S_0\exp \left[\int_0^t(r(u)-q(u)) du\right].
 $$
 
 $W^{\mathbb Q}$ denotes risk-neutral Brownian motion; $\Phi$ and $\phi$ are the
@@ -115,8 +115,8 @@ units; figures use percent. Local variance has units of inverse year.
 The model dynamics are
 
 $$
-\frac{dS_t}{S_t}=(r(t)-q(t))\,dt+
-\sigma_{\mathrm{LV}}(S_t,t)\,dW_t^{\mathbb Q}.
+\frac{dS_t}{S_t}=(r(t)-q(t)) dt+
+\sigma_{\mathrm{LV}}(S_t,t) dW_t^{\mathbb Q}.
 $$
 
 The coefficient is a deterministic function of level and time, while the
@@ -127,7 +127,7 @@ model to encode a smile and term structure.
 Implied volatility instead reproduces one European price under Black's formula:
 
 $$
-C(K,T)=D(T)\{F(T)\Phi(d_1)-K\Phi(d_2)\},
+C(K,T)=D(T)\lbrace F(T)\Phi(d_1)-K\Phi(d_2)\rbrace ,
 $$
 
 $$
@@ -161,7 +161,7 @@ Hence
 
 $$
 \sigma_{\mathrm{LV}}^2(K,T)=
-\frac{2\{C_T+q(T)C+(r(T)-q(T))K C_K\}}{K^2C_{KK}}.
+\frac{2\lbrace C_T+q(T)C+(r(T)-q(T))K C_K\rbrace }{K^2C_{KK}}.
 $$
 
 All derivatives refer to options observed on the same valuation date.
@@ -188,7 +188,7 @@ $$
 At fixed physical strike, differentiating this representation gives
 
 $$
-C_T=DF\{c_T-(r-q)z c_z-qc\},\quad
+C_T=DF\lbrace c_T-(r-q)z c_z-qc\rbrace ,\quad
 C_K=Dc_z,\quad C_{KK}=(D/F)c_{zz}.
 $$
 
@@ -210,7 +210,7 @@ valuation date's surface. Write $a_y(y,T)=a(e^y,T)$ when using log coordinates.
 For each date and expiry,
 
 $$
-C(K,T)-P(K,T)=D(T)\{F(T)-K\}.
+C(K,T)-P(K,T)=D(T)\lbrace F(T)-K\rbrace .
 $$
 
 The primary forward fit uses positive two-sided call–put pairs inside
@@ -241,7 +241,7 @@ The calibrated objective is
 $$
 \min_{p_i}\sum_j
 \left[\frac{D_iF_i c_i(K_j/F_i;p_i)-C_{\mathrm{mid},j}}{h_j}\right]^2
-+\lambda\|L p_i\|_2^2.
++\lambda\Vert L p_i\Vert _2^2.
 $$
 
 $L$ is the first-difference matrix of adjacent log controls, not a second
@@ -355,9 +355,9 @@ $\widetilde a(S/F(t),t)$. To remove deterministic carry,
 set $X_t=S_t/F(t)$ and $Y_t=\log X_t$. Itô's formula gives
 
 $$
-dX_t=X_t\sqrt{\widetilde a(X_t,t)}\,dW_t^{\mathbb Q},\qquad
+dX_t=X_t\sqrt{\widetilde a(X_t,t)} dW_t^{\mathbb Q},\qquad
  dY_t=-\tfrac12\widetilde a_y(Y_t,t)dt+
- \sqrt{\widetilde a_y(Y_t,t)}\,dW_t^{\mathbb Q}.
+ \sqrt{\widetilde a_y(Y_t,t)} dW_t^{\mathbb Q}.
 $$
 
 For normalized conditional payoff $U$, the generator is
@@ -404,7 +404,7 @@ At current spot $S$, forward $F$, discount $D$ and maturity $T$, Black spot delt
 and vega are
 
 $$
-\Delta_B=\frac{DF}{S}\{\Phi(d_1)-\mathbf 1_{\{\mathrm{put}\}}\},\qquad
+\Delta_B=\frac{DF}{S}\lbrace \Phi(d_1)-\mathbf 1_{\lbrace \mathrm{put}\rbrace }\rbrace ,\qquad
 \mathcal V_B=DF\phi(d_1)\sqrt T.
 $$
 
@@ -476,8 +476,8 @@ position, $B_i$ cash and $M_i$ the observed option mark. Over an interval,
 
 $$
 B_i^-=B_{i-1}^+\exp(r_f\Delta t_i),\qquad
-B_i^+=B_i^--\Delta O_i\,M_i^{\mathrm{fill}}
--\Delta H_i\,S_i^{\mathrm{fill}}-\mathrm{fees}_i.
+B_i^+=B_i^--\Delta O_i M_i^{\mathrm{fill}}
+-\Delta H_i S_i^{\mathrm{fill}}-\mathrm{fees}_i.
 $$
 
 The account begins with zero initial capital. Entry option proceeds fund the
@@ -728,6 +728,16 @@ are percentages. Pair N is the candidate–Black paired entry count. Common
 Gain and its 95% interval use the intersection shared by all methods for the
 same schedule and execution case, with 500 replicates and mean block 20
 sessions. These are saved estimates, not a new bootstrap run.
+
+Common-entry counts are the same across the three execution cases:
+
+| Schedule | Common entries |
+| --- | ---: |
+| 1/1 | 41,771 |
+| 5/1 | 33,763 |
+| 5/5 | 38,643 |
+| 10/1 | 24,882 |
+| 10/5 | 32,365 |
 
 ## Midpoint execution
 
