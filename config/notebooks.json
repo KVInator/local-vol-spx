@@ -1,0 +1,11 @@
+{
+  "study": "scratch/runs/full_2013_2023_v1",
+  "fingerprint": "09c095fb8a89f2ab811b2bddb393ce0a9258a8d013095b8c23a9960dd6b4a232",
+  "freeze_sha256": "b54c0bb421abb14fa64e1e223d796982312bbc34a7c02bb182829538a6207c7e",
+  "validation_folders": [
+    "scratch/runs/market_validation",
+    "scratch/runs/market_validation/greek_panel_2015-06-19",
+    "scratch/runs/market_validation/calibration_vega_2015-06-19",
+    "scratch/runs/ssvi_2015-06-19"
+  ]
+}

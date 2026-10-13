@@ -2,11 +2,6 @@
 /.local/
 /scratch/
 
-# Market data and generated results
-/data/raw/
-/data/processed/
-/outputs/
-
 # Python bytecode and notebook checkpoints
 __pycache__/
 *.py[cod]
