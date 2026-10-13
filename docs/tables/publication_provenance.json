@@ -1,0 +1,73 @@
+{
+  "frozen_fingerprint": "09c095fb8a89f2ab811b2bddb393ce0a9258a8d013095b8c23a9960dd6b4a232",
+  "figure_scope": {
+    "date": "2015-06-19",
+    "root": "UNKNOWN",
+    "log_strike_domain": [
+      -0.09,
+      0.09
+    ],
+    "slice_expiry": "2015-07-24",
+    "volatility_units": "annualized percent",
+    "price_units": "index points",
+    "holding_sessions": 5,
+    "rebalance_sessions": 1,
+    "scenario": "mid",
+    "gain_sample": "common",
+    "mean_block_sessions": 20,
+    "coverage_sample": "all selected entries per method"
+  },
+  "input_sha256": {
+    "scratch/runs/full_2013_2023_v1/run_index.json": "e9659122e37dcaf7f934d27645c87cb58d938b40d634fe83b30c78deebdbfdbc",
+    "scratch/runs/full_2013_2023_v1/freeze.json": "b54c0bb421abb14fa64e1e223d796982312bbc34a7c02bb182829538a6207c7e",
+    "scratch/runs/full_2013_2023_v1/summary/audit.json": "aba5e6ed9979a23bf977271b1ba9ac15dc0b976c8906ef2babe643e443c04fbb",
+    "scratch/runs/full_2013_2023_v1/summary/gain_summary.csv": "02d7250706aace24eeac2f5797ffae29b28cddd43cb3cb521ea0c4d0d8520fff",
+    "scratch/runs/full_2013_2023_v1/summary/common_strategy_gain.csv": "08996f9d8c43cf438586246f02d115033de528a2d9b4a3b1c6d4bc172cfc4a3a",
+    "scratch/runs/full_2013_2023_v1/summary/coverage_summary.csv": "fdae35441bd174139c8793c26d8e7090a7f96794600d37ff2d18640e9808b076",
+    "scratch/runs/full_2013_2023_v1/summary/daily_gain_statistics.csv": "927d0c51128f454f649441c1e6ea5401d43002be6ffb16735ba1ebf0974d661d",
+    "scratch/runs/full_2013_2023_v1/cache/dates/2015-06-19/decisions/cache.json": "bb506470a05d7d4f1ba1dd8dfbf4a8d8a663292a9c7dd49a195b2949a951e8c0",
+    "scratch/runs/full_2013_2023_v1/cache/dates/2015-06-19/decisions/model_manifest.csv": "3cf52fb1180bfc99bcb9743b3c0fb7d2a88d7b80909d557c9e847e4b5e04d7be",
+    "scratch/runs/full_2013_2023_v1/cache/months/2015-06/carry/cache.json": "4cd22de83307eb0c98b82ad6c0693e7b2ef63ecd8740f872733b2b21590b6a04",
+    "scratch/runs/full_2013_2023_v1/cache/months/2015-06/carry/primary_carry.csv": "1d4891ebcd925ef44bdab632b1fadc4139ce46ff73e7da3b6ebc40f1a950e51c",
+    "scratch/runs/full_2013_2023_v1/cache/dates/2015-06-19/decisions/decisions.csv": "79b321068b983c8328c682009332c858e05f129ee7ddbc1395bf17b47aa4de20",
+    "scratch/runs/full_2013_2023_v1/cache/dates/2015-06-19/decisions/0f15dc23249e_quote_residuals.csv": "227b2380399358a35bf0c64f5e7d47768d3be166a8c4031cc8e4c5e821d4c99f",
+    "scratch/runs/full_2013_2023_v1/cache/dates/2015-06-19/decisions/0f15dc23249e_expiry_summary.csv": "8ddbd29c86cbfb0347844aa2788c6e0944fced868dab597a0ec7a4f7e426964b",
+    "scratch/runs/full_2013_2023_v1/cache/dates/2015-06-19/decisions/0f15dc23249e_ah_surface.json": "2c164732403b978312c16449e68054ff4f5b69077b401cef41cd87ebfaa6da3e"
+  },
+  "source_sha256": {
+    "src/artifacts.py": "ac208833abd01e690504788513aff7407e609b5865981d6856730439e2aa2738",
+    "src/calibration.py": "7bc9f71b377841c7069016175d387f0f32316b2756dae4c37c1cd18fc9865c39",
+    "src/carry.py": "362d6f73a0d301e1dbac74c41340298f0a7182084c0f93daf43ac4bd3b7e06ea",
+    "src/data_audit.py": "0069e6bded9e78bdf9e3ddb57d22d822ea37ddb11a8144d19cc4b606ae4441fb",
+    "src/diagnostics.py": "d98b3f4606348fc386a11a869db2cdeb5157552545e2b21202212191d47c1006",
+    "src/explorer.py": "382259be89c1b79fec75338d571a966e6d8b2339e34717564e024d1e0ce4bca3",
+    "src/hedging.py": "c8d4c067d35ea74fa66624f21130b36249083ce72d06af291337bf1b4e5cd9f6",
+    "src/history_analysis.py": "99baa533f3bb2198bc8717c345e415fa2e733cdd417a6c320249cc57fd82a250",
+    "src/inference.py": "996a626b5f22448645f482fe1f2558471f471c0854259a6d47b1d343b0aa7110",
+    "src/ledger.py": "aa57d3e024e6555eb5742ecf4f1559d703107d61a1f4feb5902853dc322c4572",
+    "src/market_data.py": "5a31fdcc1fed5f9073eb10f3291b75e94734cf78aa942639887cc33568cf3b74",
+    "src/notebook_config.py": "1471d7212f96b8b591bb377f23131cfec440b3087528bde05dbdc9e9c143bfab",
+    "src/paths.py": "0214e0f2f4be64519768345436a16a007c73148e506de93c16a230a8352b742d",
+    "src/pde.py": "9543a0c58daff6ecd5ee5423e64e38b3f5198191cf28f0f38cab660e55f93777",
+    "src/pricing.py": "6ff8842025c2e239ab8b723e0496742c3a2c9b7ac0308fc15d4986ea52e8e38b",
+    "src/publication.py": "a6fc400a2baf3826d3ace4bccf9b8e59976f8adb0650e7a503da69abbb9c29ca",
+    "src/research_validation.py": "e9503eacbb42109cd144a76dee2393003d532af78bdce4ee327a7517fcecd8be",
+    "src/results.py": "da32047373ca5aecaa423cc4646f9a73dc3285e5fad2b516edb6c2f85ec918f6",
+    "src/selection.py": "1555dcec92f99dcccaa76edc7c4ee373d7dcb6695460edb831822c6b823ab110",
+    "src/simulation.py": "1e7af88d5b34929a21cef3505a98e794ac681c77a9753e500f6398b74165e98a",
+    "src/study.py": "3b91a0f7cfd390f61a01a7d34c449f626eb40e7977f166f05f61a14f4891c132",
+    "src/surface.py": "aab153038e56584a7b44527cb93eba616cf09b942aa111a07eceb39292dfbc9e",
+    "src/validation.py": "42f56f76f3844736da1bca08ee75d863d5cdaea96949898abc3dae4b5c3dcc5c"
+  },
+  "output_sha256": {
+    "docs/figures/daily_surface.png": "69c37e283d3677277c61bc1e003d92799a1d246d598e1dd0e618375ef75a2dae",
+    "docs/figures/daily_slice.png": "6f48d32410adcb4116b628055f4cb384d36e394ae32e1f473849f505498a60e9",
+    "docs/figures/history_gain.png": "066894363121f64c146658edc2c79ab327e00fc0ae3aca6ed80594612567f1df",
+    "docs/figures/history_coverage.png": "ecd551fad8dd23b6def25560984e9e999ad736dfe38aad0a22801b3f8c075a9b",
+    "docs/tables/full_history_gain.csv": "3c9f6ee25530159714c68dfe1145c3da2b23b42dfe8668b6b53dd2df8184e3bf",
+    "docs/tables/full_history_coverage.csv": "fdae35441bd174139c8793c26d8e7090a7f96794600d37ff2d18640e9808b076",
+    "docs/tables/option_spread_gain.md": "7512ecfc41a1420133e2d1d126fe11975195976121fc0930b5857b23d3c8c9f6",
+    "docs/tables/option_spread_fee_gain.md": "e28284e2db2c886e726f75c0055a53950298c8ba0e9d27bcef3524883eae49fc",
+    "docs/tables/mid_gain.md": "9fc3b67b26c7882ce0ee5c63c2b8560399728f6240f5244520e383132b6c39f8"
+  }
+}

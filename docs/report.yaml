@@ -1,0 +1,24 @@
+documentclass: article
+fontsize: 11pt
+papersize: a4
+geometry: [margin=23mm]
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+toc-depth: 2
+header-includes:
+  - |
+    \usepackage{microtype}
+    \usepackage{float}
+    \usepackage{needspace}
+    \floatplacement{figure}{H}
+    \setlength{\emergencystretch}{3em}
+    \usepackage{fancyhdr}
+    \pagestyle{fancy}
+    \fancyhf{}
+    \fancyhead[L]{\small SPX local volatility and delta hedging}
+    \fancyhead[R]{\small Kartik Vij}
+    \fancyfoot[C]{\thepage}
+    \setlength{\headheight}{14pt}
+    \let\originaltableofcontents\tableofcontents
+    \renewcommand{\tableofcontents}{\begingroup\footnotesize\originaltableofcontents\endgroup\clearpage}

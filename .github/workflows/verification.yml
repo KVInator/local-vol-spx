@@ -1,0 +1,49 @@
+name: Data-free verification
+
+on:
+  push:
+    branches: [main, complete-saved-study]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: ${{ github.workspace }}/src
+      MPLBACKEND: Agg
+      MPLCONFIGDIR: ${{ github.workspace }}/scratch/cache/matplotlib
+      IPYTHONDIR: ${{ github.workspace }}/scratch/cache/ipython
+      JUPYTER_CONFIG_DIR: ${{ github.workspace }}/scratch/cache/jupyter/config
+      JUPYTER_DATA_DIR: ${{ github.workspace }}/scratch/cache/jupyter/data
+      JUPYTER_RUNTIME_DIR: ${{ github.workspace }}/scratch/cache/jupyter/runtime
+      PIP_CACHE_DIR: ${{ github.workspace }}/scratch/cache/pip
+      XDG_CACHE_HOME: ${{ github.workspace }}/scratch/cache/xdg
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Prepare ignored runtime directories
+        run: |
+          mkdir -p scratch/cache/{matplotlib,ipython,pip,xdg,tmp}
+          mkdir -p scratch/cache/jupyter/{config,data,runtime}
+          mkdir -p scratch/runs/verification
+      - name: Install declared dependencies
+        env:
+          TMPDIR: ${{ github.workspace }}/scratch/cache/tmp
+        run: python -m pip install -r requirements.txt
+      - name: Run synthetic-fixture and numerical tests
+        env:
+          TMPDIR: ${{ github.workspace }}/scratch/cache/tmp
+        run: python -m unittest discover -s tests -v 2>&1 | tee scratch/runs/verification/tests.log

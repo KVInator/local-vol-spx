@@ -18,7 +18,30 @@
   },
   "verification": {
     "result_regression_tests": 7,
-    "scope": "Scenario-specific paired daily SSE and midpoint-selected scalar ledgers"
+    "scope": "Scenario-specific paired daily SSE and midpoint-selected scalar ledgers",
+    "full_suite_tests": 294,
+    "full_suite_status": "passed",
+    "real_kernel_notebooks": [
+      "surface_explorer",
+      "historical_analysis"
+    ],
+    "widget_checks": "Invalid request, all display controls, picker/slider/navigation recovery, optional evidence, history controls",
+    "retained_study_files": 45131,
+    "retained_raw_directory_files": 133,
+    "retained_file_checks": "All original sizes and SHA-256 checksums unchanged; history not rerun",
+    "pdf": {
+      "pages": 19,
+      "selectable_characters": 39104,
+      "links": 36,
+      "wide_text_blocks": [],
+      "page_visual_review": "All pages inspected; corrected tables and figure labels verified"
+    },
+    "fresh_public_checkout": {
+      "tests": 294,
+      "status": "passed",
+      "report_pages": 19,
+      "report": "Identical selectable text without raw data or the frozen study; public TeX tool cache reused"
+    }
   },
   "source_sha256": {
     "src/artifacts.py": "ac208833abd01e690504788513aff7407e609b5865981d6856730439e2aa2738",
@@ -66,7 +89,9 @@
     "notebooks/surface_explorer.ipynb": "13688bd0d4e2b61cf21b831cc77538707f987004f594816212ec38ab38377f40",
     "config/history_2013_2023.json": "d459af2d8e619ef2cc4822daa138b6e29c3606999990f3bfa6d2f5c7dea3cb4a",
     "config/notebooks.json": "57e1a8c261e77551a73fcbcd9f35e744a04f45d3f7fe549925c7f8401253e56b",
-    "config/simulation.json": "47fd897a912213bb1a0a6caa956ab81ee664a4f533e4ee8240e4fbcb45304db6"
+    "config/simulation.json": "47fd897a912213bb1a0a6caa956ab81ee664a4f533e4ee8240e4fbcb45304db6",
+    "src/publication.py": "a6fc400a2baf3826d3ace4bccf9b8e59976f8adb0650e7a503da69abbb9c29ca",
+    "scripts/build_publication.py": "fa645026d41ea0144e8800a83b7c1af2d7dcd1b0d0be35fc4e8199da3c8c1c10"
   },
   "cache_review_folder": "scratch/runs/publication_cache_review"
 }
