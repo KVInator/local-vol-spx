@@ -1,7 +1,7 @@
 {
   "input_sha256": {
-    "docs/report.md": "8e64a3e856a42125832f1552a264ca36cd429a1ff5d5acf1191733501f699537",
-    "docs/report.yaml": "d2a2c5a1e6787f5b42aff11c81fd190b0ba967919f186b94bfe3bdb847044f5d",
+    "docs/report.md": "439e56e30e1de38be05215c42dd1414dd093b678b6ea96c08b34f7b3cabeff10",
+    "docs/report.yaml": "541566a15b79bfdbfe4b0f27207d6c0b2646c3c949339333503c5b761516f94e",
     "docs/report.lua": "e2d385f99c454415102a47f873ffe88a23375897c1329fd053c0a4781aa1f7f3",
     "docs/figures/calibration_vega_market.png": "89e7e3e404561c9d7509be322b0c3334f1b79e68382af303fc3e0920d63e51ab",
     "docs/figures/daily_slice.png": "6f48d32410adcb4116b628055f4cb384d36e394ae32e1f473849f505498a60e9",
@@ -16,7 +16,7 @@
     "requirements.txt": "1ed7ff2f0e216815a6bea7f48e454eb11e082e570cbcee20455283f01a20af47"
   },
   "output_sha256": {
-    "docs/report.pdf": "fbbd8dd556c2b1e62058bb31f244830c67f277112d73557da7f4ae18065d1fff"
+    "docs/report.pdf": "7df2573199dc16d4bea45455f656c83255b2b7f00bfc37d01dc270838b221371"
   },
   "tools": {
     "pandoc": "pandoc 3.12.1",

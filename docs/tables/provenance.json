@@ -31,10 +31,13 @@
     "retained_file_checks": "All original sizes and SHA-256 checksums unchanged; history not rerun",
     "pdf": {
       "pages": 19,
-      "selectable_characters": 39104,
+      "selectable_characters": 39103,
       "links": 36,
       "wide_text_blocks": [],
-      "page_visual_review": "All pages inspected; corrected tables and figure labels verified"
+      "page_visual_review": "All pages inspected; compatibility edit leaves other page pixels unchanged",
+      "compatibility_changed_pages": [
+        3
+      ]
     },
     "fresh_public_checkout": {
       "tests": 294,

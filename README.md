@@ -200,7 +200,7 @@ $$
 \widetilde a_y(y,t)=
 [1-\omega(t)]a_y(y,t)+\omega(t)(G_\rho*a_y)(y,t),
 \qquad \omega(t)=\left(1-\frac{t}{T_1}\right)^2,
-\quad 0<t<T_1.
+\quad 0\lt t\lt T_1.
 $$
 
 The implementation uses a finite discrete Gaussian filter and retains raw
@@ -234,8 +234,8 @@ w(y,\theta)=\frac{\theta}{2}
 \qquad \varphi(\theta)=\frac{\eta}{\sqrt{\theta(1+\theta)}}.
 $$
 
-Nondecreasing ATM variance $\theta$, $|\rho_{\mathrm{SVI}}|<1$, $\eta\geq0$ and
-$\eta^2(1+|\rho_{\mathrm{SVI}}|)<4$ supply the implemented sufficient
+Nondecreasing ATM variance $\theta$, $|\rho_{\mathrm{SVI}}|\lt 1$, $\eta\geq0$ and
+$\eta^2(1+|\rho_{\mathrm{SVI}}|)\lt 4$ supply the implemented sufficient
 static-arbitrage conditions. The simple
 shared-shape family fits the inspected market quotes less closely than AH.
 It remains a surface diagnostic; it was not a hedge method in the frozen study.
@@ -310,8 +310,8 @@ smile movement, so their corrections are not interchangeable.
 The ideal one-period minimum-variance hedge motivates
 
 $$
-h^*=\frac{\operatorname{Cov}(\Delta C,\Delta S)}
-{\operatorname{Var}(\Delta S)}.
+h^*=\frac{\mathrm{Cov}(\Delta C,\Delta S)}
+{\mathrm{Var}(\Delta S)}.
 $$
 
 The implemented empirical rule uses the feature vector

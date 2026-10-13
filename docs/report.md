@@ -79,7 +79,7 @@ are not substituted for observed endpoint marks.
 
 | Convention | Frozen treatment |
 | --- | --- |
-| Calibration domain | Eligible research quotes within 4–60 calendar days and $|\log(K/S)|\leq0.1$ |
+| Calibration domain | Eligible research quotes within 4–60 calendar days and $\lvert\log(K/S)\rvert\leq0.1$ |
 | Entry basket | Nearest 21, 35, 45 day expiries; log spot-moneyness −0.02, 0, +0.02; calls and puts |
 | Entry eligibility | 14–45 calendar days, current-date information, deterministic tie breaking |
 | Contract key | Root, expiry, strike, payoff kind |
@@ -284,7 +284,7 @@ Before the first fitted maturity $T_1$, the hedge diffusion uses
 $$
 \widetilde a_y(y,t)=(1-\omega(t))a_y(y,t)
 +\omega(t)(G_\rho*a_y)(y,t),\qquad
-\omega(t)=(1-t/T_1)^2,\quad 0<t<T_1.
+\omega(t)=(1-t/T_1)^2,\quad 0\lt t\lt T_1.
 $$
 
 The Gaussian filter acts on variance at native log-state nodes, with radius
@@ -325,8 +325,8 @@ $$
 $$
 
 ATM variance starts from zero, is nondecreasing and is interpolated linearly
-in time. The constructor requires $|\rho_{\mathrm{SVI}}|<1$, $\eta\geq0$ and
-$\eta^2(1+|\rho_{\mathrm{SVI}}|)<4$. These give the implemented sufficient
+in time. The constructor requires $|\rho_{\mathrm{SVI}}|\lt 1$, $\eta\geq0$ and
+$\eta^2(1+|\rho_{\mathrm{SVI}}|)\lt 4$. These give the implemented sufficient
 butterfly restrictions, while the chosen shape and monotone ATM variance
 satisfy the calendar condition. Maturity derivatives are one-sided at pillars;
 evaluation stops at the final maturity. The restricted shared-shape family
@@ -438,7 +438,7 @@ or insufficient observed support is an exclusion rather than a fallback hedge.
 The unconstrained one-period minimum-variance motivation is
 
 $$
-h^*=\frac{\operatorname{Cov}(\Delta C,\Delta S)}{\operatorname{Var}(\Delta S)}.
+h^*=\frac{\mathrm{Cov}(\Delta C,\Delta S)}{\mathrm{Var}(\Delta S)}.
 $$
 
 The implemented Hull–White-style feature model [4] uses

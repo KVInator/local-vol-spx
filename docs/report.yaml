@@ -11,6 +11,7 @@ header-includes:
     \usepackage{microtype}
     \usepackage{float}
     \usepackage{needspace}
+    \providecommand{\lt}{\mathrel{<}}
     \floatplacement{figure}{H}
     \setlength{\emergencystretch}{3em}
     \usepackage{fancyhdr}
