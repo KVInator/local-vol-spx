@@ -6,12 +6,13 @@ implementation combines Andreasen–Huge calibration, Dupire local variance,
 backward-PDE pricing, smile-based hedge conventions and a correction estimated
 from past option-price changes.
 
-The completed 2013–2023 study selected **44,500 option entries** across **2,768
-reference dates**. For five-session holdings with daily rebalancing and midpoint
-marks, the AH hedge produced **30.16% more squared funded error than Black** on
-the common-entry sample. The experiment distinguishes calibration accuracy,
-numerical stability and subsequent hedging performance; each is assessed with
-its own evidence.
+The retrospective 2013–2023 study covers **2,768 reference dates** and selected
+**44,500 option entries**. For five-session holdings with daily rebalancing and
+midpoint marks, the implemented AH PDE hedge had **30.16% higher total squared
+funded error than Black** on the common-entry sample of **33,763 entries**,
+with a reported 95% bootstrap Gain interval of **[-55.50%, -7.57%]**.
+Calibration accuracy, numerical stability and historical hedging performance
+are assessed separately.
 
 The [standalone report](docs/report.pdf) ([editable source](docs/report.md))
 contains the derivations, experiment specification and full results.
@@ -380,15 +381,19 @@ $$
 {\sum_i P_{i,\mathrm{Black}}^2}.
 $$
 
-Positive Gain means lower squared funded error. Errors are measured around
-zero, so the statistic includes mean error and dispersion. It is distinct
-from demeaned variance reduction or investment returns.
+Here $P_{i,m}$ is the signed terminal P&L of the funded short-option hedge
+account for entry $i$ and method $m$, measured in index points under the
+specified accounting and execution conventions. Gain compares sums of squared
+errors on identical entries; equivalently, it compares their mean squared
+errors. Positive Gain indicates lower squared funded error. This measure
+includes squared mean error and dispersion around the mean. It measures neither
+demeaned variance reduction nor investment returns.
 
 The full study recorded 3,879,048 compared strategy/schedule/scenario outcomes,
 with zero pending paths. These reuse the 44,500 entries and are not independent
 observations. For five-session holdings, daily rebalancing and midpoint marks:
 
-| Method | Pairwise Gain | Common-entry Gain | Common-entry 95% interval |
+| Method | Pairwise Gain | Common-entry Gain | Common-entry 95% bootstrap interval |
 | --- | ---: | ---: | ---: |
 | AH PDE | -25.58% | -30.16% | [-55.50%, -7.57%] |
 | Empirical MV | -8.40% | -7.92% | [-25.78%, +9.08%] |
@@ -397,15 +402,23 @@ observations. For five-session holdings, daily rebalancing and midpoint marks:
 | Sticky strike | +0.15% | +0.15% | [-0.04%, +0.37%] |
 
 The common-entry comparison uses 33,763 entries across 2,406 entry dates.
-Intervals use 500 stationary entry-date block-bootstrap replicates with mean
-block length 20 sessions. The analysis also exposes 10- and 40-session blocks.
-Models and empirical coefficients are not re-estimated within each replicate.
+Reported intervals are method-specific 95% percentile intervals from 500
+stationary entry-date block-bootstrap replicates, with mean block length 20
+sessions. Results for 10- and 40-session blocks are also available. Resampling
+preserves within-date grouping and is intended to accommodate temporal
+dependence; interval accuracy depends on the resampling assumptions and
+block-length choice. Models and empirical coefficients are not re-estimated
+within replicates. The intervals therefore do not propagate uncertainty from
+refitting the full pipeline or from development-time model selection. They are
+not simultaneous intervals adjusted for comparisons across methods, schedules
+or scenarios.
 
 ![Full-history common-entry Gain](docs/figures/history_gain.png)
 
-Five-session holdings, daily rebalancing and midpoint execution; common-entry
-sample, with saved 95% intervals at mean bootstrap block 20 sessions. The chart
-shows the five hedged methods; the downloadable table retains the unhedged control.
+Five-session holdings, daily rebalancing and midpoint marks; common-entry
+sample, with method-specific 95% percentile bootstrap intervals at mean block
+length 20 sessions. The chart shows the five hedged methods; the downloadable
+table retains the unhedged control.
 
 ![Full-history path coverage](docs/figures/history_coverage.png)
 
@@ -414,11 +427,20 @@ selected entries in completed and incomplete status counts. Pairwise results
 add the requirement that the matching Black path completes. Figure and table
 provenance is retained in [publication pins](docs/tables/publication_provenance.json).
 
-AH's result is adverse on both samples. Empirical MV and LV-smile estimates
-have intervals spanning zero; sticky strike's small positive point estimate
-also spans zero. A close fit to today's European prices does not specify how
-tomorrow's market smile will move. These results do not support a stable AH
-hedging advantage under the experiment's conventions.
+AH PDE has negative estimated Gain on both samples, and its common-entry
+bootstrap interval lies entirely below zero. Sticky delta also has a wholly
+negative common-entry interval. The intervals for Empirical MV, LV smile and
+sticky strike contain zero, leaving the direction of their differences from
+Black unresolved by these intervals. This does not establish equivalence;
+sticky strike’s +0.15% point estimate does not establish an improvement.
+
+Calibration to current European prices does not identify subsequent
+market-smile dynamics or guarantee lower historical hedge error. The adverse AH
+result concerns the tested implementation, including its documented short-end
+diffusion blend, under the stated sample and accounting conventions. The
+aggregate comparison does not establish performance across market regimes,
+isolate the cause of the adverse result or establish a general ranking of
+local-volatility hedges.
 
 Thirty dates lack AH surfaces because 31 expiry carry fits have insufficient
 selected parity pairs. These failures occur before AH optimization. Separate
@@ -426,13 +448,21 @@ coverage records retain missing observations, unavailable models, warm-up and
 smile-stencil exclusions. Common-entry matching aligns the retained samples;
 it does not eliminate selection effects from exclusions.
 
-The experiment is retrospective because development dates were inspected.
-Training chronology is past-only, but the history is not an untouched test set.
-The raw files do not establish verified SPX/SPXW identities or official fixing
-for every contract. The research key uses `UNKNOWN` and assumes PM fixing.
-The synthetic hedge and execution conventions do not establish executable
-trading returns. Detailed counts and assumptions are in [results](docs/results.md)
-and [assumptions](docs/assumptions.md).
+September and October 2023 were inspected during development, so the full
+history is a retrospective evaluation. Empirical fits use only outcomes
+completed before each prediction, but this chronology does not make the history
+an untouched test set or remove development-time selection effects.
+
+The raw files do not verify SPX/SPXW identity or official fixing for every
+contract; the research key remains `UNKNOWN`, with PM fixing assumed. Pricing
+and cash funding use a constant 5% rate. Pricing carry is parity-implied, while
+the hedge account receives zero dividend cash. The hedge is a fractional
+synthetic index position at observed marks, without an observed executable
+hedge spread or futures basis. Option bid/ask and hedge-fee scenarios are
+specified cost sensitivities rather than verified fills. The reported hedge
+errors and relative rankings are conditional on these conventions and do not
+establish executable trading returns. Detailed counts and assumptions are in
+[results](docs/results.md) and [assumptions](docs/assumptions.md).
 
 ## Numerical checks
 
