@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
+import gzip
 import hashlib
 import json
 import os
@@ -140,12 +141,22 @@ class PinnedInputs:
         import pandas as pd
 
         path = Path(path)
-        actual = sha256(path)
+        physical = sha256(path)
+        if path.suffix == ".gz":
+            # Producer pins describe the original CSV bytes, not its container.
+            digest = hashlib.sha256()
+            with gzip.open(path, "rb") as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(block)
+            actual = digest.hexdigest()
+        else:
+            actual = physical
         if expected != actual and (
             not (expected is None and actual in legacy_input_pins)
         ):
             raise ValueError(f"Checksum mismatch or missing output pin: {path}")
-        self.inputs[str(path)] = actual
+        # Reuse checks pin the physical file, including the gzip container.
+        self.inputs[str(path)] = physical
         return pd.read_csv(path, dtype=dtype)
 
     def verify_unchanged(self):

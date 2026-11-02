@@ -129,6 +129,8 @@ after regenerating its figures. Run either command separately, or use
 | Corrected scenario-scoped publication review | `scratch/runs/publication_cache_review` |
 | Original source/configuration and retired work | `scratch/archive/completion_2026-10-13` |
 | Relocation journal and file checksums | `scratch/relocation.json` |
+| Retired development/processed evidence, lossless archive | `scratch/archive/completion_2026-10-13/retired_evidence.tar.gz` |
+| Storage transformation journal and verification | `scratch/runs/storage_cleanup_2026-11-02` |
 
 The study fingerprint is
 `09c095fb8a89f2ab811b2bddb393ce0a9258a8d013095b8c23a9960dd6b4a232`.
@@ -137,6 +139,14 @@ Its `freeze.json` SHA-256 is
 The notebook configuration checks both. Producer source, settings, stored
 decisions and outcomes remain unchanged. The original environment recorded
 Python 3.11.15, NumPy 2.4.3, pandas 2.3.3 and SciPy 1.17.1 in the freeze.
+
+Three large summary CSVs are now stored as `.csv.gz`. `StudyResults.table`
+prefers an existing `.csv`, otherwise reads its `.csv.gz` counterpart. The
+pinned reader verifies decompressed bytes against the original CSV audit pin;
+consumed-input checks track the physical compressed file. Original uncompressed
+studies remain supported. The freeze and producer audits were not rewritten.
+The [storage record](storage_cleanup.md) documents compression, cold archives,
+restoration, measured savings and a removed historical notebook checkpoint.
 
 ## Read-only cache diagnostics
 
@@ -186,6 +196,8 @@ their original producer pins. The supplied reference base is
 To reverse relocation, first close readers, then move each journal destination
 back to its original location in reverse order. Preserve the integrated source
 in a separate sandbox directory before restoring an occupied source path.
+Restore the cold evidence archive and any required uncompressed summary CSVs
+using the storage record before reversing their original relocation entries.
 The nested checkout, including its own `.git`, remains in the archive. The
 repository's outer `.git` and existing unrelated sandbox contents were preserved.
 No reset, history rewrite, deletion of unknown files or GitHub push is required.

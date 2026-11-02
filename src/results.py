@@ -48,6 +48,8 @@ class StudyResults(PinnedInputs):
     def table(self, name):
         audit = self.read_json(self.summary / "audit.json")
         path = (self.summary / f"{name}.csv").resolve()
+        if not path.exists():
+            path = path.with_suffix(".csv.gz").resolve()
         if not path.is_relative_to(self.summary):
             raise ValueError("Summary table lies outside its folder.")
         return self.read_pinned_csv(

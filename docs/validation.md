@@ -49,7 +49,13 @@ states, cache tampering, relocated cache reads, scalar-path replay, SSE/count
 aggregation and the serial/parallel blend workflow. Both deliverable notebooks
 are executed in actual `volspx` kernels, with rendered figures and widget changes
 checked across June 2015, March 2020, September 2023 and a carry-failure date.
-Execution and inspection evidence is retained under `scratch/notebook_checks`.
+The November 2 storage check repeated both notebook executions, date/failure
+callbacks and historical range controls with study producers disabled. Its
+execution and inspection evidence supersedes the old notebook checks and lives
+under `scratch/runs/storage_cleanup_2026-11-02/notebooks`. Eleven focused
+reader/integrity and aggregate-statistic checks passed without invoking a study
+producer. See the [storage record](storage_cleanup.md) for scope and the checkpoint
+retention exception.
 
 Broader gamma validation, every historical Greek, more flexible SSVI fitting
 and deployable hedge execution are outside the completed evidence. The full
