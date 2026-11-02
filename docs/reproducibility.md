@@ -1,4 +1,4 @@
-# Reproducibility and migration
+# Reproducibility
 
 Run commands from the repository root with Python 3.11. The local completed
 study uses the external `volspx` environment. A fresh clone can use an environment
@@ -34,7 +34,7 @@ It needs no private data or saved historical run. The focused
 on Python 3.11 using the declared dependencies, with logs and runtime caches
 under `scratch/`. It does not calibrate or rerun the historical study.
 
-## Notebooks and private saved inputs
+## Browse the completed study
 
 The public clone includes publication tables and figures, but excludes the raw
 quote files and completed multi-year cache. Opening the notebooks in Jupyter is
@@ -88,9 +88,8 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src \
 ```
 
 The publication was rendered with Pandoc 3.12.1 and Tectonic 0.17.0.
-Use binaries built for the host architecture; a stale incompatible executable
-earlier on `PATH` can prevent rendering. Tectonic downloads its TeX bundle on
-first use, requiring network access. `ReportRenderer` places that cache in
+Tectonic downloads its TeX bundle on first use, requiring network access.
+`ReportRenderer` places that cache in
 `scratch/cache/tectonic`, and generated TeX, logs and intermediate PDFs in
 `scratch/build/report`. Only the completed selectable-text PDF is copied to
 [docs/report.pdf](report.pdf). Inspect every rendered page after editing the
@@ -116,7 +115,7 @@ figure scope and output checksums in
 after regenerating its figures. Run either command separately, or use
 `--figures --report` when both inputs are available.
 
-## Retained inputs
+## Data locations and study identity
 
 | Material | Local location |
 | --- | --- |
@@ -148,7 +147,7 @@ studies remain supported. The freeze and producer audits were not rewritten.
 The [storage record](storage_cleanup.md) documents compression, cold archives,
 restoration, measured savings and a removed historical notebook checkpoint.
 
-## Read-only cache diagnostics
+## Cache diagnostics and new experiments
 
 Use a new output directory; the command rejects an existing populated directory.
 It identifies the failed carry expiries and replays representative fixed-contract
@@ -173,31 +172,21 @@ PYTHONPATH=src python scripts/validate_model.py \
 
 `scripts/run_history.py --plan` inspects a potential reproduction without running
 it. `config/history_2013_2023.json` directs new work to a separate output scope.
-Reading the original cache is supported; resuming its frozen run with reorganized
-source is a different operation. No full-history reproduction was performed
-during finalization.
+To change the study period, edit `settings.start` and `settings.end` in a new
+configuration and give it a separate output directory. Inspect the plan before
+preparing the calendar, freezing inputs or running the study. Browsing a date
+range in the historical notebook reads saved results and needs no reproduction.
 
-## Reversibility
+## Archived source and restoration
 
-The migration checked active writers and locks, compared the reference with the
-nested checkout, and recorded the initial Git status. Every core source file in
-the nested checkout matched the supplied reference. Missing post-history helpers
-were integrated into the retained validation workflow; the mixed notebook and
-unused pilot reader were retired after checking callers.
+The completed study was relocated with per-file size and SHA-256 checks:
+45,131 study files and 133 raw-directory files, including 132 monthly quote
+files. The original producer source is retained in
+`scratch/archive/completion_2026-10-13` and matches the freeze's source pins.
+`scratch/relocation.json` records individual old and new paths.
 
-All 45,131 completed-study files and 133 raw-directory files (132 quote files and
-one metadata file) retained their file sizes
-and SHA-256 checksums across relocation. The archived original producer source
-matches every source pin in the freeze. Summary files and consumed caches retain
-their original producer pins. The supplied reference base is
-`3a797ae0db9aa9ab62439c8996bd632f3f966240`; the original root checkout began at
-`3cc3f64`. The journal records individual old/new paths and verification.
-
-To reverse relocation, first close readers, then move each journal destination
-back to its original location in reverse order. Preserve the integrated source
-in a separate sandbox directory before restoring an occupied source path.
-Restore the cold evidence archive and any required uncompressed summary CSVs
-using the storage record before reversing their original relocation entries.
-The nested checkout, including its own `.git`, remains in the archive. The
-repository's outer `.git` and existing unrelated sandbox contents were preserved.
-No reset, history rewrite, deletion of unknown files or GitHub push is required.
+For restoration, close readers and follow the journal in reverse order.
+Restore any required cold archives or uncompressed CSVs first, using the
+[storage record](storage_cleanup.md). Preserve current source separately before
+restoring an occupied path. Routine notebook use needs the active study and
+validation folders, not the retired checkout.

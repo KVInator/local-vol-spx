@@ -12,8 +12,6 @@ from paths import HistoricalSettings, FixedContractPaths, funded_summaries
 from inference import stationary_weights, GainAccumulator
 from paths import METHODS
 from study import HistoricalStudy, ArtifactCache, study_lock, frame
-from hedging import PastOnlyEmpiricalMV, EmpiricalMVSettings
-from fixtures import empirical_fixture
 from pricing import BlackFixedIVBenchmark
 from ledger import HedgeLedgerSettings
 
@@ -329,32 +327,6 @@ class UncertaintyTests(unittest.TestCase):
         trials.loc[~trials.strategy.eq("black"), "net_pnl"] *= 1 - 1e-14
         result, _ = gain_report(trials, dates)
         self.assertTrue(result.resolved_gain_sign.eq(0).all())
-
-    def test_training_endpoint_at_prediction_is_embargoed(self):
-        training, _ = empirical_fixture(15)
-        current = training.iloc[-6:].copy()
-        training["end_timestamp"] = pd.Timestamp(current.quote_timestamp_utc.iloc[0])
-        predicted, fits, membership = PastOnlyEmpiricalMV(
-            EmpiricalMVSettings(minimum_dates=3, minimum_rows=6)
-        ).predict(current, training)
-        self.assertTrue(predicted.empirical_mv_status.eq("warmup").all())
-        self.assertTrue(membership.empty)
-
-    def test_future_label_values_do_not_change_prediction(self):
-        training, _ = empirical_fixture(15)
-        current = training.iloc[-6:].copy()
-        future = training.iloc[-6:].copy()
-        future["entry_id"] = "future-" + future.entry_id
-        future["end_timestamp"] = pd.Timestamp(
-            current.quote_timestamp_utc.iloc[0]
-        ) + pd.Timedelta(days=2)
-        estimator = PastOnlyEmpiricalMV(
-            EmpiricalMVSettings(minimum_dates=3, minimum_rows=6)
-        )
-        a = estimator.predict(current, pd.concat([training.iloc[:-6], future]))[0]
-        future["end_mid"] = 9999999.0
-        b = estimator.predict(current, pd.concat([training.iloc[:-6], future]))[0]
-        pd.testing.assert_frame_equal(a, b)
 
 
 class CacheTests(unittest.TestCase):

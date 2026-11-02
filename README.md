@@ -1,34 +1,90 @@
-# SPX local volatility and delta hedging
+# SPX Local Volatility and Delta Hedging
 
-This project constructs daily volatility surfaces from SPX end-of-day option
-quotes and tests whether their deltas improve historical hedge errors. The
-implementation combines Andreasen–Huge calibration, Dupire local variance,
-backward-PDE pricing, smile-based hedge conventions and a correction estimated
-from past option-price changes.
+Daily SPX surface calibration and a retrospective comparison of delta-hedging
+rules. Andreasen–Huge supplies the fitted price surface and Dupire local
+variance; a backward PDE calculates prices and spot Greeks. Black delta,
+smile-based rules and a rolling empirical minimum-variance correction are
+compared on the same observed option contracts.
 
-The retrospective 2013–2023 study covers **2,768 reference dates** and selected
-**44,500 option entries**. For five-session holdings with daily rebalancing and
-midpoint marks, the implemented AH PDE hedge had **30.16% higher total squared
-funded error than Black** on the common-entry sample of **33,763 entries**,
-with a reported 95% bootstrap Gain interval of **[-55.50%, -7.57%]**.
-Calibration accuracy, numerical stability and historical hedging performance
-are assessed separately.
+The research question is whether fitting today's European option prices leads
+to smaller subsequent hedge errors. Calibration residuals, numerical convergence
+and historical hedge errors are evaluated separately.
 
-The [standalone report](docs/report.pdf) ([editable source](docs/report.md))
-contains the derivations, experiment specification and full results.
+[Technical report (PDF)](docs/report.pdf) · [Report source](docs/report.md) ·
+[Full results](docs/results.md) · [Reproduction](docs/reproducibility.md)
 
-## Contents
+![SPX implied and local volatility surfaces](docs/figures/daily_surface.png)
 
-- [Local and implied volatility](#local-and-implied-volatility)
-- [Dupire's equation](#dupires-equation)
-- [Surface construction](#surface-construction)
-- [Backward pricing and Greeks](#backward-pricing-and-greeks)
-- [Hedge rules](#hedge-rules)
-- [Historical experiment](#historical-experiment)
-- [Results and interpretation](#results-and-interpretation)
-- [Numerical checks](#numerical-checks)
-- [Implementation and reproduction](#implementation-and-reproduction)
-- [References](#references)
+Saved surfaces for 19 June 2015, with log forward-moneyness restricted to
+−0.09 through +0.09. Volatility is annualized percent. Unsupported quote
+interpolation and unstable local-variance estimates remain gaps.
+
+## Historical results
+
+| Study input or output | Scope |
+| --- | --- |
+| Raw data | 132 monthly files, 14,750,241 rows, 2013–2023 |
+| Reference calendar | 2,768 sessions |
+| Selected option entries | 44,500, targeting 21-, 35- and 45-day expiries |
+| Holding / rebalancing intervals | 1/1, 5/1, 5/5, 10/1 and 10/5 sessions |
+| Accounting scenarios | Midpoint marks; option bid–ask; option bid–ask plus hedge fee |
+| Compared outcomes | 3,879,048 strategy/schedule/scenario records; zero pending paths |
+
+An entry retains its original contract. The outcome count reuses entries across
+methods, schedules and scenarios; it is not an independent sample size.
+
+For terminal funded hedge errors $P_{i,m}$ on matched entries, the comparison is
+
+$$
+\mathrm{Gain}_m=1-\frac{\sum_i P_{i,m}^2}{\sum_i P_{i,\mathrm{Black}}^2}.
+$$
+
+Positive Gain means lower squared funded error than Black. Squaring around zero
+includes both squared mean error and dispersion; Gain is distinct from demeaned
+variance reduction and investment returns.
+
+For **five-session holdings, daily rebalancing and midpoint marks**:
+
+| Method | Pairwise Gain | Common-entry Gain | Common-entry 95% bootstrap interval |
+| --- | ---: | ---: | ---: |
+| AH PDE | −25.58% | −30.16% | [−55.50%, −7.57%] |
+| Empirical MV | −8.40% | −7.92% | [−25.78%, +9.08%] |
+| LV smile | −12.38% | −12.40% | [−30.03%, +4.53%] |
+| Sticky delta | −136.71% | −136.74% | [−188.49%, −91.90%] |
+| Sticky strike | +0.15% | +0.15% | [−0.04%, +0.37%] |
+
+The common-entry sample contains **33,763 entries on 2,406 entry dates**. AH
+therefore produced 30.16% more squared funded error than Black in this comparison.
+Its reported interval and sticky delta's lie below zero. The remaining intervals
+include zero and do not resolve the direction of the difference from Black or
+establish equivalence.
+
+![Common-entry historical hedge comparison](docs/figures/history_gain.png)
+
+Intervals use 500 stationary entry-date block-bootstrap replicates with mean
+block length 20 sessions; 10- and 40-session results are also saved. Resampling
+keeps contracts from the same date together. The intervals are conditional on
+the retained model estimates and selection, without refitting or simultaneous
+adjustment across methods, schedules and scenarios.
+
+The adverse AH result concerns this implementation, including its short-end
+variance blend, under the stated conventions. It does not isolate the cause of
+the difference or establish a general ranking of local-volatility hedges.
+[Results](docs/results.md) includes completion counts, exclusions and range views.
+
+### Financial and statistical scope
+
+The history is retrospective: development included inspection of September and
+October 2023. Empirical fits use only outcomes completed before each prediction,
+but the broader sample is not an untouched holdout.
+
+The raw files do not verify every SPX/SPXW root or official fixing. The research
+key is `UNKNOWN`, with PM fixing assumed. Pricing and cash funding use 5%; the
+pricing forward is parity-implied, while hedge-account dividend cash is zero.
+The hedge is a fractional synthetic index position without observed executable
+spreads or futures basis. Cost scenarios are sensitivities, not verified fills.
+These conventions limit interpretation to a historical hedge-error comparison.
+[Assumptions](docs/assumptions.md) gives the full specification.
 
 ## Local and implied volatility
 
@@ -41,18 +97,16 @@ Brownian motion; $\Phi$ and $\phi$ are the standard normal distribution and
 density. Volatilities are annualized decimals. Pricing yield is distinct from
 the zero dividend cash assumed in the hedge account.
 
-With deterministic pricing rates and dividend yield, a local-volatility model
-represents the index under a risk-neutral measure as
+Under deterministic rates and pricing yield, the risk-neutral index dynamics are
 
 $$
 \frac{dS_t}{S_t}=[r(t)-q(t)] dt+
 \sigma_{\mathrm{LV}}(S_t,t) dW_t^{\mathbb Q}.
 $$
 
-The coefficient is a deterministic function of the current index level and
-time. The index itself remains stochastic. A constant coefficient gives the
-Black–Scholes special case; dependence on level and time allows a model to
-represent a volatility smile and term structure.
+Local volatility is a deterministic function of index level and time. A constant
+coefficient recovers Black–Scholes; state and time dependence allow a smile and
+term structure.
 
 Implied volatility is a different quantity. For a European call with strike
 $K$, time to expiry $T$, forward $F(T)$ and discount factor $D(T)$, it solves
@@ -72,9 +126,7 @@ Local volatility instead specifies the instantaneous diffusion used to price
 and hedge within a model. Recovering it requires information about how option
 prices change across both strike and maturity.
 
-Volatility is annualized and expressed in decimal units in the code. Time uses
-years on an ACT/365F basis. Plots report volatility in percent and option prices
-in index points. The plotting coordinates are
+The surface coordinates are
 
 $$
 y=\log \left(\frac{K}{F(T)}\right),
@@ -127,22 +179,19 @@ The time derivative is taken at fixed normalized strike $z$. The function
 $a(z,T)$ supplies local variance at the physical index level $F(T)z$. The
 initial normalized call payoff is $c(z,0)=(1-z)^+$.
 
-This normalization is also used by the backward pricer. It keeps the forward
-and discount assumptions explicit and avoids confusing calibration parameters
-with the recovered diffusion coefficient.
+The backward pricer uses the same carry normalization.
 
-## Surface construction
+## Calibration and surface diagnostics
 
 ### Quotes and carry
 
-The dataset contains 132 monthly files and 14,750,241 raw rows. The audit checks
-timestamps, contract fields, duplicates, index marks and bid-ask validity. Of
-2,768 reference sessions, 24 have missing observations and 21 observed
-early-close dates are excluded pending clock review.
+The quote audit checks timestamps, contract fields, duplicate keys, index marks
+and bid–ask validity. Of 2,768 reference sessions, 24 lack observations; 21
+observed early-close dates are excluded pending clock review.
 
 The primary parity fit uses $|\log(K/S)|\leq0.03$ and requires at least six
-selected call-put pairs per expiry. Near-the-money pairs estimate an expiry forward under an assumed
-pricing discount factor. Put-call parity is
+selected call-put pairs per expiry. The forward fit uses the assumed pricing
+discount factor. Put-call parity is
 
 $$
 C(K,T)-P(K,T)=D(T)[F(T)-K].
@@ -186,15 +235,10 @@ $a$. The coefficient implementation uses positive density and derivative
 calculations in logarithmic form to preserve small wing quantities. It does
 not obtain curvature by differentiating a piecewise-linear price interpolant.
 
-The frozen calibration uses 8,000 intervals, log-domain half-width 1.0 and up
-to 31 control points per expiry. The first-difference penalty has $\lambda=1$;
-proxy volatilities are bounded between 0.005 and 3.0, without capping recovered
-coefficients. Numerical settings and input hashes are retained
-with the study.
-
 ### Short-end diffusion blend
 
-Write $a_y(y,t)=a(e^y,t)$. Before the first fitted maturity $T_1$, the historical hedge diffusion blends
+Write $a_y(y,t)=a(e^y,t)$. Before the first fitted maturity $T_1$, the
+historical hedge diffusion blends
 native variance with a Gaussian average in log normalized state:
 
 $$
@@ -226,20 +270,17 @@ Unsupported regions, negative calendar derivatives, invalid density factors
 and unstable derivative stencils remain unavailable. This interpolation is a
 diagnostic comparison and was not used as a historical hedge diffusion.
 
-A separate constrained SSVI comparison uses
+A constrained SSVI fit provides a second comparison, with sufficient static-
+arbitrage restrictions on its shared-shape family. Its inspected quote fit is
+less accurate than AH. Both SSVI and quote-PCHIP are diagnostics; neither supplies
+the diffusion used in the historical hedge study. [Methods](docs/methods.md)
+and the [report](docs/report.md#quote-pchip-and-constrained-ssvi-diagnostics)
+give their specification.
 
-$$
-w(y,\theta)=\frac{\theta}{2}
-\left[1+\rho_{\mathrm{SVI}}\varphi(\theta)y+
-\sqrt{(\varphi(\theta)y+\rho_{\mathrm{SVI}})^2+1-\rho_{\mathrm{SVI}}^2}\right],
-\qquad \varphi(\theta)=\frac{\eta}{\sqrt{\theta(1+\theta)}}.
-$$
+![Observed quotes and the saved 35-day maturity slice](docs/figures/daily_slice.png)
 
-Nondecreasing ATM variance $\theta$, $|\rho_{\mathrm{SVI}}|\lt 1$, $\eta\geq0$ and
-$\eta^2(1+|\rho_{\mathrm{SVI}}|)\lt 4$ supply the implemented sufficient
-static-arbitrage conditions. The simple
-shared-shape family fits the inspected market quotes less closely than AH.
-It remains a surface diagnostic; it was not a hedge method in the frozen study.
+19 June 2015, 24 July expiry: equivalent-call quote fits, original half-spread
+residuals and local-volatility diagnostics.
 
 ## Backward pricing and Greeks
 
@@ -260,9 +301,8 @@ $$
 
 The solver marches backward using midpoint Crank–Nicolson, implicit Rannacher
 steps at the payoff, maturity breaks aligned with coefficient changes and a
-time mesh graded toward zero. The frozen hedge grid has 24,000 intervals,
-log-domain half-width 0.75 and 128 nominal steps per day. Coefficients are
-sampled at positive times within supported domains.
+time mesh graded toward zero. Coefficients are sampled at positive times within
+supported domains. Grid settings are listed in [methods](docs/methods.md#numerical-settings).
 
 For $k=K/F(T)$, the normalized terminal call payoff is $(x-k)^+$. Currency or
 index-point prices are restored with $A(t,T)=D(T)F(T)/D(t)$:
@@ -330,24 +370,17 @@ must end strictly before the prediction timestamp. Warm-up, rank and
 conditioning failures remain in coverage. The fitted objective uses raw price
 changes; the funded multi-session hedge error is evaluated afterward.
 
-## Historical experiment
+## Fixed-contract hedge accounting
 
-Entries target 21, 35 and 45 calendar days to expiry and spot log-moneyness
-$\log(K/S)$ of $-0.02$, $0$ and $+0.02$, for calls and puts. Selection is based
-on current-date information and deduplicates targets that choose the same
-contract. Each path then retains that contract through its holding period.
+Current-date selection targets spot log-moneyness $\log(K/S)$ of −0.02, 0 and
++0.02, for calls and puts. Targets selecting the same contract are deduplicated.
+Each path holds that contract for its declared reference-session horizon; a
+missing mark leaves an incomplete path rather than extending the holding period.
+Every rebalance loads the saved current-date decision.
 
-The holding/rebalance schedules are **1/1, 5/1, 5/5, 10/1 and 10/5 reference
-sessions**. Missing marks do not extend a path to the next available date.
-Rebalancing uses saved current-date decisions and observed option/index marks.
-
-The option position is short one unit. The midpoint scenario uses midpoint
-entry and exit prices. Spread scenarios sell at bid and close at ask; the fee
-scenario additionally charges 1 bp of traded hedge notional. The hedge is a
-fractional synthetic index position. Pricing and cash funding use an assumed
-constant 5% rate, while dividend cash in the hedge account is zero.
-
-With hedge position $\delta_i$ and cash $B_i$, a rebalance has the form
+The account is short one option. It starts with the option proceeds less the
+hedge purchase and entry costs. Cash accrues between decisions, then funds hedge
+trades and costs:
 
 $$
 B_{i+1}^{-}=B_i^{+}e^{r_f\Delta t_i},\qquad
@@ -355,195 +388,95 @@ B_{i+1}^{+}=B_{i+1}^{-}-(\delta_{i+1}-\delta_i)S_{i+1}
 -\mathrm{cost}_{i+1}.
 $$
 
-The account starts from option proceeds less hedge purchases and entry costs.
-At exit it liquidates the index hedge and closes the short option. Funding,
-turnover, costs and option/index P&L components are retained in the ledger.
-Pricing carry and hedge-account dividend assumptions are distinct; the result
-is a research hedge-error comparison under those conventions.
+At exit, the account liquidates the index hedge and closes the option. Midpoint
+marks, option bid–ask and the additional 1 bp hedge-notional fee are separate
+scenarios. Funding, turnover and option/index P&L components remain in the ledger.
 
-![Saved daily AH and quote-based surfaces](docs/figures/daily_surface.png)
+![Historical path completion and exclusions](docs/figures/history_coverage.png)
 
-June 19, 2015, root `UNKNOWN`, $|\log(K/F)|\leq0.09$. Volatilities are
-annualized percent; total variance is $\sigma^2T$. Quote-support and derivative
-gaps remain visible, and recovered coefficients are uncapped.
+Coverage for the five-session daily midpoint comparison retains all 44,500
+entries per method. Pairwise comparisons additionally require a completed Black
+path. Thirty dates lack AH surfaces because 31 expiry carry fits have too few
+selected parity pairs; these failures precede optimization. Common-entry matching
+aligns the retained samples but does not remove exclusion-related selection effects.
 
-![Saved 35-day maturity slice and quote fit](docs/figures/daily_slice.png)
+## Numerical validation
 
-The same date, July 24, 2015 expiry (35 days): observed equivalent calls,
-AH fitted prices, original half-spread residuals and local-volatility diagnostics.
+Analytical Black and square-root CEV controls check prices, Greeks, simulated
+transitions and funded accounting. Market refinements vary space, time, domain,
+grid position, blend radius and spot-bump width independently.
 
-## Results and interpretation
-
-For candidate and Black errors measured on the same entries,
-
-$$
-\mathrm{Gain}=1-\frac{\sum_i P_{i,\mathrm{candidate}}^2}
-{\sum_i P_{i,\mathrm{Black}}^2}.
-$$
-
-Here $P_{i,m}$ is the signed terminal P&L of the funded short-option hedge
-account for entry $i$ and method $m$, measured in index points under the
-specified accounting and execution conventions. Gain compares sums of squared
-errors on identical entries; equivalently, it compares their mean squared
-errors. Positive Gain indicates lower squared funded error. This measure
-includes squared mean error and dispersion around the mean. It measures neither
-demeaned variance reduction nor investment returns.
-
-The full study recorded 3,879,048 compared strategy/schedule/scenario outcomes,
-with zero pending paths. These reuse the 44,500 entries and are not independent
-observations. For five-session holdings, daily rebalancing and midpoint marks:
-
-| Method | Pairwise Gain | Common-entry Gain | Common-entry 95% bootstrap interval |
-| --- | ---: | ---: | ---: |
-| AH PDE | -25.58% | -30.16% | [-55.50%, -7.57%] |
-| Empirical MV | -8.40% | -7.92% | [-25.78%, +9.08%] |
-| LV smile | -12.38% | -12.40% | [-30.03%, +4.53%] |
-| Sticky delta | -136.71% | -136.74% | [-188.49%, -91.90%] |
-| Sticky strike | +0.15% | +0.15% | [-0.04%, +0.37%] |
-
-The common-entry comparison uses 33,763 entries across 2,406 entry dates.
-Reported intervals are method-specific 95% percentile intervals from 500
-stationary entry-date block-bootstrap replicates, with mean block length 20
-sessions. Results for 10- and 40-session blocks are also available. Resampling
-preserves within-date grouping and is intended to accommodate temporal
-dependence; interval accuracy depends on the resampling assumptions and
-block-length choice. Models and empirical coefficients are not re-estimated
-within replicates. The intervals therefore do not propagate uncertainty from
-refitting the full pipeline or from development-time model selection. They are
-not simultaneous intervals adjusted for comparisons across methods, schedules
-or scenarios.
-
-![Full-history common-entry Gain](docs/figures/history_gain.png)
-
-Five-session holdings, daily rebalancing and midpoint marks; common-entry
-sample, with method-specific 95% percentile bootstrap intervals at mean block
-length 20 sessions. The chart shows the five hedged methods; the downloadable
-table retains the unhedged control.
-
-![Full-history path coverage](docs/figures/history_coverage.png)
-
-The same schedule and execution scenario. Each method retains all 44,500
-selected entries in completed and incomplete status counts. Pairwise results
-add the requirement that the matching Black path completes. Figure and table
-provenance is retained in [publication pins](docs/tables/publication_provenance.json).
-
-AH PDE has negative estimated Gain on both samples, and its common-entry
-bootstrap interval lies entirely below zero. Sticky delta also has a wholly
-negative common-entry interval. The intervals for Empirical MV, LV smile and
-sticky strike contain zero, leaving the direction of their differences from
-Black unresolved by these intervals. This does not establish equivalence;
-sticky strike’s +0.15% point estimate does not establish an improvement.
-
-Calibration to current European prices does not identify subsequent
-market-smile dynamics or guarantee lower historical hedge error. The adverse AH
-result concerns the tested implementation, including its documented short-end
-diffusion blend, under the stated sample and accounting conventions. The
-aggregate comparison does not establish performance across market regimes,
-isolate the cause of the adverse result or establish a general ranking of
-local-volatility hedges.
-
-Thirty dates lack AH surfaces because 31 expiry carry fits have insufficient
-selected parity pairs. These failures occur before AH optimization. Separate
-coverage records retain missing observations, unavailable models, warm-up and
-smile-stencil exclusions. Common-entry matching aligns the retained samples;
-it does not eliminate selection effects from exclusions.
-
-September and October 2023 were inspected during development, so the full
-history is a retrospective evaluation. Empirical fits use only outcomes
-completed before each prediction, but this chronology does not make the history
-an untouched test set or remove development-time selection effects.
-
-The raw files do not verify SPX/SPXW identity or official fixing for every
-contract; the research key remains `UNKNOWN`, with PM fixing assumed. Pricing
-and cash funding use a constant 5% rate. Pricing carry is parity-implied, while
-the hedge account receives zero dividend cash. The hedge is a fractional
-synthetic index position at observed marks, without an observed executable
-hedge spread or futures basis. Option bid/ask and hedge-fee scenarios are
-specified cost sensitivities rather than verified fills. The reported hedge
-errors and relative rankings are conditional on these conventions and do not
-establish executable trading returns. Detailed counts and assumptions are in
-[results](docs/results.md) and [assumptions](docs/assumptions.md).
-
-## Numerical checks
-
-Analytical Black and square-root CEV controls test pricing, Greeks, simulated
-transitions and funded accounting. Market refinements examine space, time,
-domain width, grid shifts, blend radius and spot-bump width separately.
-
-On June 19, 2015, a 30-contract panel covers calls and puts, four blend radii,
-six PDE settings and three initial spots: 2,160 sampled states. At the original
-spot and historical radius, the largest 24k-to-48k delta change is $3.36\times10^{-6}$. Gamma remains more sensitive to grid position and blending.
-
-![Measured Greek and blend sensitivity](docs/figures/greek_blend_market.png)
-
-The same-date calibration-vega experiment uses symmetric parallel quote-IV
-shocks of 1, 2 and 5 volatility basis points. It recalibrates 566 supported
-quotes while retaining 31 noninvertible midpoint quotes unchanged in the fit.
-Seven calibrations and 18 contracts give a maximum native/PDE relative vega
-difference of 0.993% for this declared shock direction, with carry held fixed.
-
-Twelve outcome-selected contract/method paths at six dates are replayed against
-Black under three execution scenarios: 72 scalar ledgers. Cached components
-and the scalar calculations agree within $1.49\times10^{-12}$ index points.
-These selected checks support their recorded scope. They do not independently
-validate every historical Greek or establish the cause of every large error.
-[Validation](docs/validation.md) and [cache checks](docs/cache_checks.md) give
-the inputs, comparisons and remaining numerical limits.
-
-## Implementation and reproduction
-
-The numerical core is organized around cohesive model and workflow objects.
-The notebooks and command scripts call that implementation.
-
-| Responsibility | Authoritative source |
+| Retained experiment | Measured result and scope |
 | --- | --- |
-| Quote preparation, carry and contract selection | `market_data.py`, `carry.py`, `selection.py` |
-| AH/SSVI surfaces and coefficient recovery | `surface.py`, `calibration.py` |
-| Forward/backward solvers and spot Greeks | `pde.py`, `pricing.py` |
-| Smile and past-only empirical hedge rules | `hedging.py` |
-| Fixed-contract paths and funded accounting | `paths.py`, `ledger.py` |
-| Historical orchestration and inference | `study.py`, `inference.py` |
-| Saved results, explorer and historical views | `results.py`, `explorer.py`, `history_analysis.py` |
-| Numerical controls and refinements | `validation.py`, `research_validation.py`, `simulation.py` |
-| Artifact pins and checkpoints | `artifacts.py` |
-| Curated publication artifacts and PDF rendering | `publication.py` |
+| June 2015 Greek panel | 30 contracts × four blend radii × six PDE settings × three initial spots: 2,160 sampled states |
+| Delta refinement | Maximum 24k-to-48k change of $3.36\times10^{-6}$ at the original spot and historical blend radius |
+| Calibration vega | 18 contracts, seven calibrations and parallel quote-IV shocks of 1, 2 and 5 volatility basis points; maximum native/PDE relative difference 0.993% |
+| Selected path replays | 72 scalar ledgers at six entry dates; component agreement within $1.49\times10^{-12}$ index points |
 
-The source uses a flat `src/` directory rather than distribution packaging.
-Dependencies are in [requirements.txt](requirements.txt). From the repository
-root, activate the existing environment or prepare an equivalent one:
+![Greek and short-end blend sensitivity](docs/figures/greek_blend_market.png)
+
+Gamma is more sensitive to grid position and blending. Calibration-vega shocks
+hold carry fixed and leave 31 noninvertible midpoint quotes unchanged; the check
+covers one declared shock direction. The path replays are outcome-selected
+explanations. These panels do not validate every historical Greek or independent
+calibration pillar. [Validation](docs/validation.md) and
+[saved-path diagnostics](docs/cache_checks.md) identify their inputs and limits.
+
+## Run the project
+
+Python 3.11 is the reference runtime. From the repository root, activate the
+existing `volspx` environment or use an environment under the ignored sandbox:
 
 ```bash
-conda activate volspx
-python -m pip install -r requirements.txt
+python3.11 -m venv scratch/.venv
+source scratch/.venv/bin/activate
+PIP_CACHE_DIR="$PWD/scratch/cache/pip" python -m pip install -r requirements.txt
+mkdir -p scratch/cache/{matplotlib,ipython}
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src \
-  MPLCONFIGDIR=scratch/cache/matplotlib \
+  MPLCONFIGDIR="$PWD/scratch/cache/matplotlib" \
+  IPYTHONDIR="$PWD/scratch/cache/ipython" \
   python -m unittest discover -s tests
 ```
 
-Launch the saved-output interfaces with
+The tests use synthetic fixtures and analytical references; private market data
+is not required. The public clone also includes the report, figures and summary
+tables. Daily browsing and full historical notebook controls require the retained
+study and configured validation inputs, which are not distributed with the source.
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/src" \
-  MPLCONFIGDIR="$PWD/scratch/cache/matplotlib" python -m jupyterlab
+PYTHONPATH="$PWD/src" MPLCONFIGDIR="$PWD/scratch/cache/matplotlib" \
+  python -m jupyterlab
 ```
 
-| Notebook | Use |
+| Notebook | Purpose |
 | --- | --- |
-| [Surface explorer](notebooks/surface_explorer.ipynb) | Date-controlled surfaces, maturity slices, quote fits, carry, deltas and available numerical evidence |
-| [Historical analysis](notebooks/historical_analysis.ipynb) | Full-history results by schedule, execution, sample, grouping and bootstrap block length |
+| [Surface explorer](notebooks/surface_explorer.ipynb) | Synchronized dates, surfaces, quote fits, carry, saved deltas and date-matched numerical evidence |
+| [Historical analysis](notebooks/historical_analysis.ipynb) | Saved comparisons by schedule, cost scenario, sample, grouping and bootstrap block length |
 
-Both use [config/notebooks.json](config/notebooks.json). Their input study,
-private quotes and generated caches live under ignored `scratch/`. Browsing
-reads saved models and computes surface diagnostics. Calibration and PDE risk
-experiments run only through explicit validation commands.
+Both read [config/notebooks.json](config/notebooks.json). Browsing loads saved
+models and results; new calibration and PDE-risk experiments have separate
+commands. Date ranges aggregate pairwise SSE and counts before calculating Gain,
+with no range confidence intervals or inferred common-entry statistics.
 
-Date-range historical views sum saved SSE and counts before calculating Gain.
-They are descriptive pairwise results with no inferred full-history confidence
-interval or common-entry range statistics. The dataset and complete historical
-cache are not distributed in this source repository. Reproduction therefore
-requires the monthly data and recorded preparation inputs; exploratory widgets
-require the saved study. [Reproducibility](docs/reproducibility.md) documents
-paths, the frozen fingerprint, commands and migration records.
+[Reproduction instructions](docs/reproducibility.md) cover data locations,
+report rendering and verification. The three large summary exports may be stored
+as `.csv.gz`; the reader checks decompressed bytes against their original audit
+hashes. [Storage maintenance](docs/storage_cleanup.md) records compression and
+restoration without changing the frozen study.
+
+## Implementation
+
+The flat `src/` core owns the calculations; scripts and notebooks compose it.
+
+| Responsibility | Source |
+| --- | --- |
+| Quotes, carry and selection | `market_data.py`, `carry.py`, `selection.py` |
+| AH/SSVI calibration and surfaces | `calibration.py`, `surface.py` |
+| Forward/backward PDEs and spot Greeks | `pde.py`, `pricing.py` |
+| Hedge rules, paths and cash accounting | `hedging.py`, `paths.py`, `ledger.py` |
+| Historical orchestration and inference | `study.py`, `inference.py` |
+| Saved inputs and analysis interfaces | `artifacts.py`, `results.py`, `explorer.py`, `history_analysis.py` |
+| Numerical experiments and publication | `simulation.py`, `validation.py`, `research_validation.py`, `publication.py` |
 
 ## References
 
@@ -556,3 +489,7 @@ paths, the frozen fingerprint, commands and migration records.
 4. John Hull and Alan White (2017), *Optimal Delta Hedging for Options*,
    Journal of Banking and Finance 82, 180–190 (first working version: 2015).
    [Author manuscript](https://www-2.rotman.utoronto.ca/~hull/downloadablepublications/Optimal%20Delta%20Hedging.pdf).
+
+## Author
+
+Kartik Vij

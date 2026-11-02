@@ -12,8 +12,10 @@ identify the result scope; [reproducibility](reproducibility.md) gives their loc
 The comparison below uses daily rebalancing and observed midpoint marks. Each
 pairwise sample matches a candidate with Black. The common-entry intersection
 has 33,763 entries across 2,406 entry dates for every method.
-Intervals use the saved entry-date bootstrap with a mean block of 20 sessions
-and 500 replicates; the notebook also exposes 10- and 40-session blocks.
+Intervals use 500 stationary entry-date block-bootstrap replicates with a mean
+block of 20 sessions; the notebook also exposes 10- and 40-session blocks.
+They are conditional on the saved estimates and selections, without refitting
+or adjustment for simultaneous comparisons across methods, schedules and scenarios.
 
 | Method | Paired entries | Pairwise Gain | Common-entry Gain | Common-entry 95% interval |
 | --- | ---: | ---: | ---: | ---: |
@@ -26,10 +28,10 @@ and 500 replicates; the notebook also exposes 10- and 40-session blocks.
 Gain is one minus candidate squared funded error divided by matched Black
 squared funded error, measured around zero. AH's common-entry Gain therefore
 means 30.16% more squared error than Black. Empirical MV and LV smile have
-intervals crossing zero, sticky delta is substantially worse, and sticky
-strike's small positive estimate also has an interval crossing zero. These
-findings do not support a stable AH hedge advantage under the [study conventions](assumptions.md).
-The earlier general 8–12% variance-reduction claim is unsupported.
+intervals crossing zero, as does sticky strike's small positive estimate.
+Those intervals leave the direction unresolved; they do not establish equivalence.
+AH and sticky delta's intervals lie below zero. The results do not support
+a stable AH hedge advantage under the [study conventions](assumptions.md).
 
 ## Coverage
 
@@ -58,6 +60,5 @@ to their recorded scope.
 
 Thirty dates lack AH surfaces because one or more expiry carry fits were
 unavailable. [Cache diagnostics](cache_checks.md) identifies all 31 affected
-expiry records and replays selected large-error paths. September/October
-development displays and old November prefixes are archived; removing them
-does not turn this retrospective study into a held-out experiment.
+expiry records and replays selected large-error paths. The study is retrospective;
+its sample and interpretation are specified in [assumptions](assumptions.md).

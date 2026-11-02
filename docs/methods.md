@@ -1,4 +1,4 @@
-# Local Volatility and Hedge Methodology
+# Methodology and implementation settings
 
 The project compares SPX delta-hedging methods using daily option quotes and
 fixed-contract historical trade paths. The main question is whether fitting a
@@ -9,7 +9,7 @@ surface, calculate hedge positions from that date's information, then account
 for each position over its holding period. Data preparation is described in
 [Market Data and Preparation](data.md).
 
-## Andreasen–Huge Calibration
+## Andreasen–Huge calibration
 
 Andreasen–Huge (AH) is the main surface model. It fits normalized call prices
 expiry by expiry on a finite strike grid. With normalized strike $z=K/F(T)$
@@ -32,7 +32,32 @@ This changes the diffusion relative to the native AH price surface. The
 [validation study](validation.md) compares the resulting prices and Greeks
 under numerical refinements.
 
-## Independent Total-Variance Surface
+## Numerical settings
+
+The frozen historical configuration uses the following settings. Spatial widths
+are half-widths in log normalized state or strike.
+
+| Component | Setting |
+| --- | --- |
+| AH calibration grid | 8,000 intervals, half-width 1.0 |
+| AH controls | At most 31 log-volatility controls per expiry; smoothing weight 1.0 |
+| Proxy volatility bounds | 0.005 to 3.0; at most 300 optimizer evaluations |
+| Short-end variance blend | Gaussian radius 0.0005; weight $(1-t/T_1)^2$ before the first fitted maturity |
+| Backward pricing grid | 24,000 intervals, half-width 0.75 |
+| Time stepping | Nominal 128 steps per day; midpoint Crank–Nicolson with Rannacher startup, maturity breaks and grading toward zero |
+| Smile checks | Four fine cells; delta tolerance 0.0005; slope tolerances 0.01 absolute and 0.05 relative |
+| Empirical correction | Up to 60 past entry dates; at least 10 dates and 60 rows; condition limit $10^8$ |
+| Funding and hedge fee | 5% lending and borrowing; 1 bp of traded hedge notional in the fee scenario |
+
+The [historical configuration](../config/history_2013_2023.json) records these
+values. The completed cache's `freeze.json` is authoritative for the saved run.
+Changing the current configuration creates a different numerical experiment;
+it does not change a saved result. The [README](../README.md#backward-pricing-and-greeks)
+gives the normalized backward equation and Greek transformations.
+[Validation](validation.md) reports refinement results rather than treating
+these grid sizes as an accuracy guarantee.
+
+## Independent total-variance surface
 
 The diagnostic comparison starts from quote-implied total variance,
 $w(y,T)=\sigma_{\mathrm{imp}}(y,T)^2T$, where $y=\log(K/F)$.
@@ -44,7 +69,7 @@ independent interpolation choice. It is unconstrained and can retain negative
 calendar derivatives or densities. Invalid local-variance values remain
 unavailable. It has not been accepted as an alternative hedge diffusion.
 
-### Constrained SSVI Comparison
+### Constrained SSVI comparison
 
 A separate SSVI fit provides a constrained total-variance surface. The
 original PCHIP comparison remains available so its failures can still be inspected.
@@ -83,7 +108,7 @@ The explorer includes the saved June 19, 2015 SSVI comparison only on that date.
 Its measured quote-fit differences are retained as diagnostics. SSVI was not a
 hedge method in the frozen historical experiment.
 
-## Hedge Rules
+## Hedge rules
 
 | Method | Calculation |
 | --- | --- |
@@ -105,7 +130,7 @@ rolling window. A training observation is admitted only when its outcome
 endpoint is strictly earlier than the prediction timestamp. Warm-up, rank and
 conditioning failures remain visible in coverage.
 
-## Historical Hedge Paths
+## Historical hedge paths
 
 The same option contract is held for 1, 5 or 10 reference sessions. The default
 holding/rebalance pairs are 1/1, 5/1, 5/5, 10/1 and 10/5. Each rebalance uses
@@ -119,7 +144,7 @@ funding, rebalancing and liquidation.
 The completed study stores daily models, selections and outcomes separately.
 The two notebooks read these caches without invoking the producer.
 
-## Performance Measures
+## Performance measures
 
 Candidate and Black hedges are paired on the same option entries. Gain is
 
@@ -137,7 +162,7 @@ Pairwise comparisons use the entries available to each candidate and Black.
 The common-entry comparison restricts every method to the same intersection.
 Results are also grouped by maturity, moneyness, delta and year.
 
-## Uncertainty and Evaluation Scope
+## Uncertainty and evaluation scope
 
 The bootstrap resamples whole entry dates, using mean block lengths of 10, 20
 and 40 sessions. Contracts entered on the same date remain together, and date

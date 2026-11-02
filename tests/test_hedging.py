@@ -502,8 +502,11 @@ class EmpiricalControls(unittest.TestCase):
         entry = self.panel.loc[self.panel.quote_date.eq("2023-08-08")]
         first = self.estimator.predict(entry, self.panel)[0]
         changed = self.panel.copy()
-        changed.loc[changed.quote_date.ge("2023-08-08"), "end_mid"] += 10000
-        changed.loc[changed.quote_date.ge("2023-08-08"), "end_spot"] *= 10
+        unavailable = pd.to_datetime(changed.end_timestamp, utc=True).ge(
+            pd.Timestamp(entry.quote_timestamp_utc.iloc[0])
+        )
+        changed.loc[unavailable, "end_mid"] += 10000
+        changed.loc[unavailable, "end_spot"] *= 10
         pd.testing.assert_frame_equal(first, self.estimator.predict(entry, changed)[0])
 
     def test_contemporaneous_endpoint_is_excluded(self):
@@ -513,6 +516,11 @@ class EmpiricalControls(unittest.TestCase):
         first = self.estimator.predict(entry, training)[0]
         training.loc[same_close, "end_mid"] += 5000
         pd.testing.assert_frame_equal(first, self.estimator.predict(entry, training)[0])
+
+        training["end_timestamp"] = entry.quote_timestamp_utc.iloc[0]
+        predictions, _, membership = self.estimator.predict(entry, training)
+        self.assertTrue(predictions.empirical_mv_status.eq("warmup").all())
+        self.assertTrue(membership.empty)
 
     def test_rolling_window_is_enforced(self):
         _, fits, _ = self.estimator.predict(self.panel, self.panel)

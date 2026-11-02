@@ -4,7 +4,7 @@ Analytical Black and CEV controls test prices, payoff parity, Greeks and ledger
 accounting. AH tests cover calibration invariants, price-shape checks, carry
 consistency and the recovered coefficient. Quote interpolation retains
 unsupported regions, negative calendar/density diagnostics and unstable
-derivatives as gaps. The numerical model was unchanged during finalization.
+derivatives as gaps.
 
 ## Retained market checks
 
@@ -40,25 +40,42 @@ producer audits and output hashes remain attached to
 The June saved constrained SSVI comparison is retained as a separate quote-fit
 diagnostic, with its original producer pins.
 
-## Verification scope
+## Automated verification
 
-The local baseline passed 280 tests before integration. The integrated suite passed
-290 tests in 59.050 seconds in `volspx`. Final verification
-includes the retained numerical suite, date switching, missing/carry-failure
-states, cache tampering, relocated cache reads, scalar-path replay, SSE/count
-aggregation and the serial/parallel blend workflow. Both deliverable notebooks
-are executed in actual `volspx` kernels, with rendered figures and widget changes
-checked across June 2015, March 2020, September 2023 and a carry-failure date.
-The November 2 storage check repeated both notebook executions, date/failure
-callbacks and historical range controls with study producers disabled. Its
-execution and inspection evidence supersedes the old notebook checks and lives
-under `scratch/runs/storage_cleanup_2026-11-02/notebooks`. Eleven focused
-reader/integrity and aggregate-statistic checks passed without invoking a study
-producer. See the [storage record](storage_cleanup.md) for scope and the checkpoint
-retention exception.
+The data-free suite uses analytical references and synthetic quotes. It covers:
 
+- Black and CEV prices and Greeks; AH calibration and recovered variance;
+  backward-PDE convergence and short-end blending.
+- Scalar and vectorized funded ledgers, fixed-contract paths, transaction costs
+  and independent SSE/count aggregation.
+- Strictly past-only empirical training, failure statuses and bootstrap inference.
+- Saved-input identity, checksums, relocation, compressed exports and cache reuse.
+- Synchronized notebook controls, failed date selections, missing optional
+  evidence and serial/parallel numerical workflows.
+
+Run it from the repository root:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src MPLBACKEND=Agg \
+  MPLCONFIGDIR="$PWD/scratch/cache/matplotlib" \
+  python -m unittest discover -s tests
+```
+
+[CI](../.github/workflows/verification.yml) runs the same suite on Python 3.11.
+Synthetic fixtures exercise the analysis interfaces without private data.
+Saved-study verification additionally requires the retained market cache.
+
+## Saved-study verification and limits
+
+Both notebooks were executed against the completed study in `volspx`, including
+rendered figures, date changes, carry failures and historical range controls.
+The latest retained evidence is in
+`scratch/runs/storage_cleanup_2026-11-02/notebooks`; those checks disabled study
+producers. The [storage record](storage_cleanup.md) also documents export
+compression, checksum verification and the historical checkpoint retention exception.
+
+The retained panels cover selected dates, contracts and shock directions.
 Broader gamma validation, every historical Greek, more flexible SSVI fitting
-and deployable hedge execution are outside the completed evidence. The full
-history was neither rerun nor revised. [Assumptions](assumptions.md) records
-the financial and retrospective scope; [reproducibility](reproducibility.md)
-lists commands and retained inputs.
+and deployable hedge execution remain outside the evidence.
+[Assumptions](assumptions.md) records the financial and retrospective scope;
+[reproducibility](reproducibility.md) lists commands and required inputs.
